@@ -1,0 +1,276 @@
+;;; stdlib.iota, the part of the standard library written in Scheme.
+;;;
+;;; Embedded in the binary and run once at startup, after the primitives
+;;; are installed. The (scheme ...) libraries are export lists over the
+;;; environment this runs in, see Iota.Library, so anything defined here
+;;; becomes visible wherever its name is listed.
+;;;
+;;; If something can be written in Scheme it should be written here.
+;;; Procedures that call back into user code are far easier to get right
+;;; on this side, because call/cc and dynamic-wind work without any effort.
+
+;;; combinators, exported from (iota extras)
+
+(define (id x) x)
+(define (flip f) (lambda (a b) (f b a)))
+(define (curry f a) (lambda (b) (f a b)))
+(define (compose f g) (lambda (x) (f (g x))))
+
+;;; c[ad]+r. The three and four deep ones are exported from (scheme cxr).
+
+(define (caar p) (car (car p)))
+(define (cadr p) (car (cdr p)))
+(define (cdar p) (cdr (car p)))
+(define (cddr p) (cdr (cdr p)))
+
+(define (caaar p) (car (caar p)))
+(define (caadr p) (car (cadr p)))
+(define (cadar p) (car (cdar p)))
+(define (caddr p) (car (cddr p)))
+(define (cdaar p) (cdr (caar p)))
+(define (cdadr p) (cdr (cadr p)))
+(define (cddar p) (cdr (cdar p)))
+(define (cdddr p) (cdr (cddr p)))
+
+(define (caaaar p) (car (caaar p)))
+(define (caaadr p) (car (caadr p)))
+(define (caadar p) (car (cadar p)))
+(define (caaddr p) (car (caddr p)))
+(define (cadaar p) (car (cdaar p)))
+(define (cadadr p) (car (cdadr p)))
+(define (caddar p) (car (cddar p)))
+(define (cadddr p) (car (cdddr p)))
+(define (cdaaar p) (cdr (caaar p)))
+(define (cdaadr p) (cdr (caadr p)))
+(define (cdadar p) (cdr (cadar p)))
+(define (cdaddr p) (cdr (caddr p)))
+(define (cddaar p) (cdr (cdaar p)))
+(define (cddadr p) (cdr (cdadr p)))
+(define (cdddar p) (cdr (cddar p)))
+(define (cddddr p) (cdr (cdddr p)))
+
+(define first car)
+(define second cadr)
+(define third caddr)
+
+;;; folds
+
+(define (foldl f acc lst)
+  (if (null? lst)
+      acc
+      (foldl f (f acc (car lst)) (cdr lst))))
+
+(define (foldr f acc lst)
+  ;; Walks a reversed copy instead of recursing, so long lists don't
+  ;; build up a chain of continuations.
+  (let loop ((rev (reverse lst)) (acc acc))
+    (if (null? rev)
+        acc
+        (loop (cdr rev) (f (car rev) acc)))))
+
+(define fold foldl)
+(define reduce foldr)
+
+(define (unfold f seed pred)
+  (let loop ((seed seed) (acc '()))
+    (if (pred seed)
+        (reverse (cons seed acc))
+        (loop (f seed) (cons seed acc)))))
+
+;;; lists
+
+(define (last-pair lst)
+  (if (pair? (cdr lst))
+      (last-pair (cdr lst))
+      lst))
+
+(define (filter keep? lst)
+  (let loop ((l lst) (acc '()))
+    (cond ((null? l) (reverse acc))
+          ((keep? (car l)) (loop (cdr l) (cons (car l) acc)))
+          (else (loop (cdr l) acc)))))
+
+(define (remove drop? lst)
+  (filter (lambda (x) (not (drop? x))) lst))
+
+(define (partition pred lst)
+  (values (filter pred lst) (remove pred lst)))
+
+(define (iota-range n)                  ; (iota-range 3) => (0 1 2)
+  (let loop ((i (- n 1)) (acc '()))
+    (if (< i 0) acc (loop (- i 1) (cons i acc)))))
+
+(define (list-index pred lst)
+  (let loop ((l lst) (i 0))
+    (cond ((null? l) #f)
+          ((pred (car l)) i)
+          (else (loop (cdr l) (+ i 1))))))
+
+(define (any pred lst)
+  (cond ((null? lst) #f)
+        ((pred (car lst)) #t)
+        (else (any pred (cdr lst)))))
+
+(define (every pred lst)
+  (cond ((null? lst) #t)
+        ((pred (car lst)) (every pred (cdr lst)))
+        (else #f)))
+
+(define (append-map f lst)
+  (apply append (map f lst)))
+
+;; member and assoc take an optional comparator. With two arguments they
+;; go straight to the primitive. With three they loop here.
+(define %member member)
+(define (member x lst . rest)
+  (if (null? rest)
+      (%member x lst)
+      (let ((same? (car rest)))
+        (let loop ((l lst))
+          (cond ((null? l) #f)
+                ((same? x (car l)) l)
+                (else (loop (cdr l))))))))
+
+(define %assoc assoc)
+(define (assoc x alist . rest)
+  (if (null? rest)
+      (%assoc x alist)
+      (let ((same? (car rest)))
+        (let loop ((l alist))
+          (cond ((null? l) #f)
+                ((same? x (caar l)) (car l))
+                (else (loop (cdr l))))))))
+
+(define (list-set! lst k value)
+  (set-car! (list-tail lst k) value))
+
+(define (make-list n . fill)
+  (let ((x (if (null? fill) #f (car fill))))
+    (let loop ((n n) (acc '()))
+      (if (<= n 0) acc (loop (- n 1) (cons x acc))))))
+
+;;; numbers
+
+;; The truncate variants and floor-remainder are primitives. These are
+;; the ones that were missing.
+(define (floor-quotient a b)
+  (quotient (- a (floor-remainder a b)) b))
+(define (floor/ a b)
+  (values (floor-quotient a b) (floor-remainder a b)))
+(define (truncate/ a b)
+  (values (truncate-quotient a b) (truncate-remainder a b)))
+
+(define (add1 n) (+ n 1))
+(define (sub1 n) (- n 1))
+(define (1+ n) (+ n 1))
+(define (1- n) (- n 1))
+
+;;; strings and bytevectors
+
+(define (string-null? s) (= (string-length s) 0))
+
+(define (bytevector-copy! to at from . start-end)
+  (let* ((s (apply bytevector-copy from start-end))
+         (n (bytevector-length s)))
+    (do ((i 0 (+ i 1)))
+        ((= i n))
+      (bytevector-u8-set! to (+ at i) (bytevector-u8-ref s i)))))
+
+;; The primitives take the whole string or bytevector. The optional start
+;; and end arguments are handled by copying the slice first. That is an
+;; extra copy per call and I have not cared enough to remove it.
+(define %string->vector string->vector)
+(define (string->vector s . start-end)
+  (%string->vector (apply string-copy s start-end)))
+
+(define %string->utf8 string->utf8)
+(define (string->utf8 s . start-end)
+  (%string->utf8 (apply string-copy s start-end)))
+
+(define %utf8->string utf8->string)
+(define (utf8->string bv . start-end)
+  (%utf8->string (apply bytevector-copy bv start-end)))
+
+(define (string-join parts sep)
+  (if (null? parts)
+      ""
+      (apply string-append
+             (car parts)
+             (apply append (map (lambda (s) (list sep s)) (cdr parts))))))
+
+;;; parameters and promises
+
+;; The converter is applied to the initial value on this side so that it
+;; can be any procedure, closures included.
+(define (make-parameter init . converter)
+  (if (null? converter)
+      (%make-parameter init #f)
+      (%make-parameter ((car converter) init) (car converter))))
+
+;; This is the reference implementation from the report. A promise points
+;; at a box. Forcing a delay-force chain loops and makes all the promises
+;; in the chain share one box, and that is what keeps the chain in
+;; constant space. Do not simplify it, I broke the space bound the last
+;; time I tried.
+(define (force promise)
+  (cond
+    ((not (promise? promise)) promise)   ; forcing a non-promise yields it
+    ((%promise-done? promise) (%promise-value promise))
+    (else
+      (let ((promise* ((%promise-value promise))))
+        (if (not (%promise-done? promise))
+            (%promise-update! (if (promise? promise*) promise* (make-promise promise*))
+                              promise))
+        (force promise)))))
+
+;;; ports
+
+(define (call-with-port port proc)
+  (call-with-values (lambda () (proc port))
+    (lambda results
+      (close-port port)
+      (apply values results))))
+
+(define (call-with-input-file path proc)
+  (call-with-port (open-input-file path) proc))
+
+(define (call-with-output-file path proc)
+  (call-with-port (open-output-file path) proc))
+
+;; The current ports are parameters, so redirecting is a parameterize.
+(define (with-input-from-file path thunk)
+  (call-with-input-file path
+    (lambda (port)
+      (parameterize ((current-input-port port)) (thunk)))))
+
+(define (with-output-to-file path thunk)
+  (call-with-output-file path
+    (lambda (port)
+      (parameterize ((current-output-port port)) (thunk)))))
+
+(define (call-with-output-string proc)
+  (let ((port (open-output-string)))
+    (proc port)
+    (get-output-string port)))
+
+(define (port->string port)             ; not standard. reads the port to the end
+  (let loop ((acc '()))
+    (let ((c (read-char port)))
+      (if (eof-object? c)
+          (list->string (reverse acc))
+          (loop (cons c acc))))))
+
+;;; output helpers, exported from (iota extras)
+
+(define (displayln x) (display x) (newline))
+(define (writeln x) (write x) (newline))
+(define (print . xs) (for-each display xs) (newline))
+
+;;; fact and fib, because every Scheme has them
+
+(define (fact n)
+  (if (<= n 1) 1 (* n (fact (- n 1)))))
+
+(define (fib n)
+  (let loop ((a 0) (b 1) (n n))
+    (if (= n 0) a (loop b (+ a b) (- n 1)))))

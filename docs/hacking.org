@@ -1,0 +1,146 @@
+#+TITLE: Hacking on iota
+#+OPTIONS: toc:t num:t
+
+* Toolchain
+
+  Any GHC from 9.4 onwards. On Arch:
+
+  #+begin_src sh
+    sudo pacman -S ghc cabal-install
+  #+end_src
+
+  Or with ghcup, which is ghcup-hs-bin on the AUR:
+
+  #+begin_src sh
+    ghcup install ghc recommended
+    ghcup install cabal latest
+  #+end_src
+
+  Then:
+
+  #+begin_src sh
+    cabal build
+    cabal test
+    cabal repl
+  #+end_src
+
+  hie.yaml is checked in, so haskell-language-server finds the project
+  on its own.
+
+* Where things go
+
+  | Change                                  | Where                                                                 |
+  |-----------------------------------------+-----------------------------------------------------------------------|
+  | lexical syntax                          | src/Iota/Reader.hs and Test.Reader                                    |
+  | a new core form                         | special in src/Iota/Expand.hs and specialForms in Expand/Common.hs    |
+  | a new derived form                      | rewrite in src/Iota/Expand/Derived.hs, in the style of chapter 7.3    |
+  | libraries, import, cond-expand          | src/Iota/Expand/Library.hs                                            |
+  | a procedure that needs Haskell          | the matching module under src/Iota/Primitives/                        |
+  | a procedure that calls back into Scheme | a PrimitiveK in Iota.Primitives.Control, or write it in Scheme        |
+  | a procedure expressible in Scheme       | lib/iota/stdlib.iota, which is embedded at compile time, so rebuild    |
+  | exporting it from a standard library    | the Appendix A lists in src/Iota/Library.hs                           |
+  | printing                                | src/Iota/Printer.hs and Test.Printer                                  |
+  | numerics, complex numbers               | src/Iota/Number.hs and Test.Number                                    |
+  | syntax-rules                            | src/Iota/SyntaxRules.hs and Test.Macro                                |
+  | evaluation and continuations            | src/Iota/Eval.hs                                                      |
+
+  When in doubt, write it in Scheme. A primitive that calls a Scheme
+  procedure has to be a PrimitiveK and must not throw for Scheme level
+  errors, which means using guardIO, and it is easy to get that wrong in
+  a way the tests will not catch. Anything written in Scheme gets
+  continuations and dynamic-wind right without trying.
+
+  A name only becomes visible to programs once it appears in an export
+  list in Iota.Library. If a listed name is not defined, startup fails
+  immediately rather than at first use.
+
+* Tests
+
+  cabal test runs one tasty tree:
+
+  1. Unit tests for the pure parts, meaning the reader, the printer and
+     the numbers. Unit tests for syntax-rules in Test.Macro, driven with
+     a hand-built syntactic environment. QuickCheck properties in
+     Test.Property for read and write round trips and number formatting.
+  2. Evaluator cases in test/Test/Eval.hs and Scheme.hs. Each is an
+     expression and its expected write output, run in a fresh
+     interpreter.
+  3. File and process tests in Test.Ports. File ports, libraries loaded
+     from disk, include, error locations, exit.
+  4. Golden tests. Every test/scheme/NAME.iota is run and its output,
+     meaning everything it displayed followed by the written value of
+     its last form, is compared against test/golden/NAME.golden. This is
+     the test and test/ans layout from adamwespiser/scheme. Output is
+     captured by pushing a string port onto the current-output-port
+     parameter, see Iota.Interpreter.captureOutput.
+
+  To add a golden test:
+
+  #+begin_src sh
+    echo '(+ 1 2)' > test/scheme/my-case.iota
+    cabal run iota -- run test/scheme/my-case.iota   # check it by eye
+    cabal test --test-options='--accept'             # writes the .golden
+  #+end_src
+
+  The accept flag rewrites every golden file from the current output.
+  Read the diff before committing.
+
+* Conventions
+
+  - -Wall stays clean. Build with -Werror before sending a change.
+  - Language extensions go in the cabal file, not in pragmas.
+  - A helper lives in the module that owns the type, not where it was
+    first needed.
+  - Comments say why, not what. If the code needs a comment to say what
+    it does, the code is the problem.
+  - The report wins. When in doubt, read the relevant section of R7RS
+    and do what it says. A deliberate deviation goes on the list at the
+    end of docs/r7rs-coverage.org, with the reason.
+
+* Sending a change
+
+  Open a pull request against main. Keep it to one thing. A fix comes
+  with a test that fails without it. If the change is user visible,
+  update docs/iota.org or docs/r7rs-coverage.org in the same change.
+  Nothing is merged with a failing test suite.
+
+  Bug reports are best with the smallest program that shows the problem,
+  the output you expected, and the output of iota --version.
+
+* Debugging
+
+  A few things that have saved me time:
+
+  - The repl's :ast command shows what the reader made of an expression.
+    Handy when a macro seems to see the wrong shape.
+  - cabal repl, then import Iota, then evalText "(+ 1 2)" gives you the
+    interpreter from ghci. newInterpreter and runText do the same with a
+    persistent environment.
+  - A test in Test.Eval is one line. Write the failing case there first
+    and work backwards from it.
+  - Test.Macro drives syntax-rules with a hand built environment, which
+    is the quickest way to poke at a hygiene problem.
+
+* Checking a build by hand
+
+  Before a release, or after anything that touches the
+  build, run the same steps on the GHC versions listed under tested-with
+  in iota.cabal:
+
+  #+begin_src sh
+    cabal build all --enable-tests --ghc-options=-Werror
+    cabal test
+    cabal haddock lib:iota
+    for f in examples/*.iota; do cabal run -v0 iota -- "$f"; done
+  #+end_src
+
+  ghcup makes switching GHC versions painless.
+
+* Cutting a release
+
+  1. The checks above, on every GHC in tested-with.
+  2. cabal haddock, and read it once for anything that looks wrong.
+  3. cabal check and cabal sdist. The tarball has to build on its own.
+  4. Make sure docs/r7rs-coverage.org still matches what the code does.
+  5. Bump the version in iota.cabal, following the PVP.
+  6. Tag it, vX.Y, and push the tag.

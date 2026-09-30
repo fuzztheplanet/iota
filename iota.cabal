@@ -1,0 +1,144 @@
+cabal-version:      3.4
+name:               iota
+version:            0.1
+synopsis:           A small R7RS Scheme interpreter in Haskell
+description:
+  iota is an R7RS-small Scheme interpreter. It is built as a library (the
+  Iota.* modules) with a small command line driver on top, so the reader,
+  the printer, the expander and the evaluator can each be tested on their
+  own.
+  .
+  Architecture notes and the R7RS coverage table are under docs/.
+
+homepage:           https://github.com/fuzztheplanet/iota
+bug-reports:        https://github.com/fuzztheplanet/iota/issues
+license:            MIT
+license-file:       LICENSE
+author:             Skywhi
+maintainer:         skywhi@skywhi.net
+copyright:          (c) 2026 Skywhi
+category:           Language
+build-type:         Simple
+extra-doc-files:    README.org
+                    examples/README.org
+                    docs/architecture.org
+                    docs/iota.org
+                    docs/r7rs-coverage.org
+                    docs/hacking.org
+tested-with:        GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.2
+
+extra-source-files: lib/iota/stdlib.iota
+                    examples/*.iota
+                    examples/my/*.iota
+                    test/scheme/*.iota
+                    test/scheme/lib/*.iota
+                    test/golden/*.golden
+                    test/scheme/*.iota
+                    test/scheme/lib/*.iota
+                    test/golden/*.golden
+
+source-repository head
+  type:     git
+  location: https://github.com/fuzztheplanet/iota.git
+
+-- Keep the warnings on. A lot of the interpreter relies on GHC telling me
+-- when a pattern match has stopped being exhaustive.
+common warnings
+  ghc-options:      -Wall
+                    -Wcompat
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wmissing-export-lists
+                    -Wpartial-fields
+                    -Wredundant-constraints
+
+common language
+  default-language: GHC2021
+  default-extensions:
+                    DerivingStrategies
+                    LambdaCase
+                    MultiWayIf
+                    OverloadedStrings
+                    RecordWildCards
+
+library
+  import:           warnings, language
+  hs-source-dirs:   src
+  exposed-modules:  Iota
+                    Iota.CLI
+                    Iota.Counter
+                    Iota.Eval
+                    Iota.Expand
+                    Iota.Expand.Common
+                    Iota.Expand.Derived
+                    Iota.Expand.Library
+                    Iota.Interpreter
+                    Iota.Library
+                    Iota.Number
+                    Iota.Primitives
+                    Iota.Primitives.Control
+                    Iota.Primitives.IO
+                    Iota.Primitives.Numeric
+                    Iota.Primitives.Pairs
+                    Iota.Primitives.Predicates
+                    Iota.Primitives.Strings
+                    Iota.Primitives.Vectors
+                    Iota.Printer
+                    Iota.Reader
+                    Iota.Repl
+                    Iota.Syntax
+                    Iota.SyntaxRules
+                    Iota.Types
+                    Iota.Value
+  other-modules:    Paths_iota
+  autogen-modules:  Paths_iota
+  build-depends:    base                 >= 4.16   && < 5
+                  , bytestring           >= 0.11   && < 0.13
+                  , containers           >= 0.6    && < 0.8
+                  , directory            >= 1.3    && < 1.4
+                  , file-embed           >= 0.0.15 && < 0.1
+                  , filepath             >= 1.4    && < 1.6
+                  , haskeline            >= 0.8    && < 0.9
+                  , megaparsec           >= 9.2    && < 10
+                  , optparse-applicative >= 0.17   && < 0.20
+                  , text                 >= 1.2    && < 2.2
+                  , time                 >= 1.9    && < 1.15
+                  , transformers         >= 0.5    && < 0.7
+                  , vector               >= 0.12   && < 0.14
+
+executable iota
+  import:           warnings, language
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  build-depends:    base
+                  , iota
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-A64m -K256m"
+
+test-suite iota-test
+  import:           warnings, language
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  other-modules:    Test.Eval
+                    Test.Golden
+                    Test.Macro
+                    Test.Number
+                    Test.Ports
+                    Test.Property
+                    Test.Printer
+                    Test.Reader
+                    Test.Scheme
+                    Test.Util
+  build-depends:    base
+                  , iota
+                  , bytestring
+                  , directory
+                  , filepath
+                  , QuickCheck           >= 2.14   && < 2.16
+                  , tasty                >= 1.4    && < 1.6
+                  , tasty-golden         >= 2.3    && < 2.4
+                  , tasty-hunit          >= 0.10   && < 0.11
+                  , tasty-quickcheck     >= 0.10   && < 0.12
+                  , text
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N

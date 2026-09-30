@@ -1,0 +1,8 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:iota"
+    - path: "app/Main.hs"
+      component: "iota:exe:iota"
+    - path: "test"
+      component: "iota:test:iota-test"

@@ -1,0 +1,15 @@
+dist-newstyle/
+.stack-work/
+*.hi
+*.o
+*.prof
+*.hp
+*.eventlog
+.ghc.environment.*
+cabal.project.local*
+.direnv/
+result
+result-*
+TAGS
+tags
+.iota_history

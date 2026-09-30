@@ -1,0 +1,21 @@
+; merge sort. recursion, let-values, append
+(define (split lst)
+  (if (or (null? lst) (null? (cdr lst)))
+      (list lst '())
+      (let ((rest (split (cddr lst))))
+        (list (cons (car lst) (car rest))
+              (cons (cadr lst) (cadr rest))))))
+
+(define (merge a b)
+  (cond ((null? a) b)
+        ((null? b) a)
+        ((< (car a) (car b)) (cons (car a) (merge (cdr a) b)))
+        (else (cons (car b) (merge a (cdr b))))))
+
+(define (msort lst)
+  (if (or (null? lst) (null? (cdr lst)))
+      lst
+      (let ((halves (split lst)))
+        (merge (msort (car halves)) (msort (cadr halves))))))
+
+(msort '(38 27 43 3 9 82 10))

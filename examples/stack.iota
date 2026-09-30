@@ -1,0 +1,15 @@
+;; Importing a library from a file. (my stack) lives in my/stack.iota,
+;; next to this script.
+
+(import (scheme base) (scheme write) (prefix (my stack) stack:))
+
+(define s (stack:make-stack))
+(stack:push! s 1)
+(stack:push! s 2)
+(stack:push! s 3)
+
+(let loop ()
+  (unless (stack:empty? s)
+    (write (stack:pop! s))
+    (newline)
+    (loop)))

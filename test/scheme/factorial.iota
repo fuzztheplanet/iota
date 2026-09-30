@@ -1,0 +1,9 @@
+; factorial, recursive and iterative
+(define (fact-rec n)
+  (if (<= n 1) 1 (* n (fact-rec (- n 1)))))
+
+(define (fact-iter n)
+  (let loop ((n n) (acc 1))
+    (if (<= n 1) acc (loop (- n 1) (* acc n)))))
+
+(list (fact-rec 20) (fact-iter 20) (= (fact-rec 30) (fact-iter 30)))

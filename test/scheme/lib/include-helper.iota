@@ -1,0 +1,3 @@
+; used by include.iota. it lives in a subdirectory so the golden runner skips it
+(define included-value 40)
+(define (included-add x) (+ included-value x))

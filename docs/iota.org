@@ -1,0 +1,252 @@
+#+TITLE: Using iota
+#+OPTIONS: toc:t num:t
+
+* Introduction
+
+  This is the user's guide. It assumes you know some Scheme and want to
+  know what iota does with it. For a feature by feature comparison with
+  the report, see [[file:r7rs-coverage.org][r7rs-coverage.org]]. For how the interpreter works
+  inside, see [[file:architecture.org][architecture.org]].
+
+* The command line
+
+  #+begin_src sh
+    iota                        # repl
+    iota program.iota a b       # run a file. (command-line) => ("program.iota" "a" "b")
+    iota run program.iota       # the same
+    iota eval '(* 6 7)'         # evaluate one expression and print it
+    iota --version
+    iota --help
+  #+end_src
+
+  A script runs with every standard library imported. Its top level
+  forms are read and run one at a time, so a form can use what the
+  previous one defined and a syntax error is only reported when the
+  reader reaches it. The value of the last form is not printed. If you
+  want output, =display= it.
+
+  Options after the script name are passed to the script untouched, so
+  =iota tool.iota --verbose= works without a =--= separator.
+
+  Exit status is 0 when the program finishes, 1 when it dies with an
+  uncaught error, and whatever =(exit n)= asked for otherwise. =exit=
+  runs the pending =dynamic-wind= after thunks first. =emergency-exit=
+  does not.
+
+  Errors in files are reported with the file name, line and column of
+  the top level form they happened in:
+
+  #+begin_example
+    $ iota bad.iota
+    bad.iota:3:1: expected a pair, got: 1
+  #+end_example
+
+  Two environment variables matter. =IOTA_LIBRARY_PATH= is a colon
+  separated list of directories to search for library files, after the
+  directory of the importing file. =IOTA_TAI_OFFSET= overrides the
+  TAI minus UTC offset that =current-second= adds, for the day the
+  built in constant falls behind the leap second table.
+
+  Source files are read as UTF-8 whatever the locale says, and so are
+  the standard streams.
+
+* Data types
+
+** Booleans
+   =#t= and =#f=, or =#true= and =#false=. Only =#f= is false. =0=, ="""=
+   and =()= are all true.
+
+** Numbers
+   Exact integers and rationals of any size, and inexact IEEE doubles:
+
+   #+begin_example
+     iota> (+ 1/3 1/6)
+     1/2
+     iota> (expt 2 100)
+     1267650600228229401496703205376
+     iota> (* 2 3.5)
+     7.0
+     iota> (exact 0.5)
+     1/2
+   #+end_example
+
+   Radix prefixes work. =#xff= is 255, =#b1010= is 10, =#e1.5= is 3/2.
+
+   Complex numbers, in rectangular and polar notation:
+
+   #+begin_example
+     iota> (* +i +i)
+     -1
+     iota> (sqrt -4)
+     +2i
+     iota> (/ 1+2i 1-2i)
+     -3/5+4/5i
+     iota> (magnitude 3+4i)
+     5
+     iota> (make-polar 1 3.141592653589793)
+     -1.0+1.2246467991473532e-16i
+   #+end_example
+
+   A complex number with exact parts stays exact. =<= and friends of
+   that kind only take real numbers, and so do =abs=, =floor=, =max= and
+   =positive?=.
+
+** Characters and strings
+   =#\a=, =#\space=, =#\x41=. Strings are mutable and take the full
+   escape set, including =\n=, =\x41;= and line continuations. String
+   literals, like every literal constant, are immutable.
+   =(string-set! "abc" 0 #\z)= is an error.
+   =(string-set! (string-copy "abc") 0 #\z)= is fine.
+
+** Symbols
+   Case sensitive. =|two words|= is a symbol with a space in it.
+
+** Pairs and lists
+   Mutable. A =set-car!= or =set-cdr!= is visible through every
+   reference to the pair.
+
+** Vectors and bytevectors
+   =#(1 2 3)= and =#u8(0 255)= literals, the full set of accessors,
+   =utf8->string= and =string->utf8=.
+
+** Records
+   #+begin_src scheme
+     (define-record-type point
+       (make-point x y)
+       point?
+       (x point-x set-point-x!)
+       (y point-y))
+   #+end_src
+
+* Control
+
+  Proper tail calls. =(define (loop n) (if (= n 0) 'done (loop (- n 1))))=
+  runs in constant space for any =n=.
+
+  =call/cc= works for early exits and for real coroutines, because
+  continuations can be re-entered:
+
+  #+begin_src scheme
+    (call/cc (lambda (return)
+      (for-each (lambda (x) (when (odd? x) (return x)))
+                '(2 4 5 6))))   ; => 5
+
+    (define (make-generator lst)
+      (define return #f)
+      (define resume #f)
+      (lambda ()
+        (call/cc (lambda (r)
+          (set! return r)
+          (if resume
+              (resume 'go)
+              (begin
+                (for-each (lambda (x)
+                            (call/cc (lambda (k) (set! resume k) (return x))))
+                          lst)
+                (return 'done)))))))
+    (define g (make-generator '(a b c)))
+    (list (g) (g) (g) (g))        ; => (a b c done)
+  #+end_src
+
+  The before and after thunks of =dynamic-wind= run on every entry and
+  exit, including re-entry through a continuation.
+
+  Exceptions:
+
+  #+begin_src scheme
+    (guard (e ((error-object? e) (error-object-message e)))
+      (error "boom" 1 2))       ; => "boom"
+  #+end_src
+
+  Parameters:
+
+  #+begin_src scheme
+    (define p (make-parameter 10))
+    (parameterize ((p 42)) (p)) ; => 42
+    (p)                         ; => 10
+  #+end_src
+
+  The current ports are parameters too, so redirecting output is
+
+  #+begin_src scheme
+    (parameterize ((current-output-port (open-output-string)))
+      (display "goes to the string port"))
+  #+end_src
+
+  and that is how the stdlib defines =with-output-to-file=.
+
+  =eval= and =load=:
+
+  #+begin_src scheme
+    (eval '(+ 1 2))                        ; => 3
+    (eval '(+ 1 2) (interaction-environment))
+    (load "some-file.iota")                ; into the current environment
+  #+end_src
+
+* Macros
+
+  =syntax-rules=:
+
+  #+begin_src scheme
+    (define-syntax my-or
+      (syntax-rules ()
+        ((_) #f)
+        ((_ e) e)
+        ((_ e1 e2 ...) (let ((t e1)) (if t t (my-or e2 ...))))))
+  #+end_src
+
+  Expansion is hygienic. The =t= above cannot capture a =t= at the call
+  site, and =if= and =let= in the template mean what they meant where
+  the macro was defined, whatever the call site has rebound. Literals
+  such as =else= and ==>= are matched by binding, so a locally rebound
+  =else= is only a variable.
+
+* Libraries
+
+  A program may start with =import= declarations, and the repl takes
+  them at any point. The repl and scripts begin with every standard
+  library imported, so =(import (scheme base))= is optional there. It is
+  still what a portable program should write.
+
+  #+begin_src scheme
+    (define-library (my stack)
+      (import (scheme base))
+      (export make-stack push! pop!)
+      (begin
+        (define (make-stack) (list '*stack*))
+        (define (push! s x) (set-cdr! s (cons x (cdr s))))
+        (define (pop! s) (let ((x (cadr s))) (set-cdr! s (cddr s)) x))))
+
+    (import (prefix (my stack) stack:))
+    (define s (stack:make-stack))
+  #+end_src
+
+  A library the program does not define is looked for in =my/stack.iota=
+  next to the importing file, then in the directories
+  listed in =IOTA_LIBRARY_PATH=. Only exported names are visible.
+  =only=, =except=, =prefix= and =rename= work as in the report.
+  =(environment '(scheme base))= gives =eval= an environment with those
+  bindings and nothing else.
+
+* The repl
+
+  | Command         | Effect                              |
+  |-----------------+-------------------------------------|
+  | =:help=         | list the commands                   |
+  | =:ast EXPR=     | show the parsed form                |
+  | =:env [PREFIX]= | list bound names                    |
+  | =:load FILE=    | run FILE in the current environment |
+  | =:q= / =:quit=  | exit                                |
+
+  Tab completes over everything bound. History is kept in
+  =~/.local/state/iota/history=. Unbalanced input continues on the next
+  line.
+
+* The standard library
+
+  Compiled into the binary from =lib/iota/stdlib.iota= and loaded at
+  startup. The non-standard extras are in =(iota extras)=, which the
+  repl imports by default. That library has =foldl=, =foldr=, =unfold=,
+  =filter=, =remove=, =partition=, =any=, =every=, =compose=, =curry=,
+  =flip=, =displayln=, =print=, =string-join=,
+  =call-with-output-string=, =port->string=, and =fact= and =fib=.

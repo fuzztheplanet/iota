@@ -1,0 +1,3 @@
+; include splices another file's forms in here
+(include "lib/include-helper.iota")
+(included-add 2)

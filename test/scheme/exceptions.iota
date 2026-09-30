@@ -1,0 +1,13 @@
+; guard, error objects, re-raise
+(define (safe-div a b)
+  (guard (e (#t 'division-error))
+    (/ a b)))
+
+(list (safe-div 10 2)
+      (safe-div 1 0)
+      (guard (e ((symbol? e) (list 'caught e)))
+        (raise 'oops))
+      (guard (e ((error-object? e)
+                 (list (error-object-message e)
+                       (error-object-irritants e))))
+        (error "boom" 1 2)))

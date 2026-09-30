@@ -1,0 +1,13 @@
+; call/cc as an early exit out of a nested walk
+(define (find-leaf pred tree)
+  (call/cc
+    (lambda (return)
+      (let walk ((t tree))
+        (cond ((pair? t) (walk (car t)) (walk (cdr t)))
+              ((null? t) #f)
+              ((pred t) (return t))
+              (else #f)))
+      'not-found)))
+
+(list (find-leaf even? '((1 3) (5 (7 8)) 9))
+      (find-leaf (lambda (x) (> x 100)) '((1 2) 3)))

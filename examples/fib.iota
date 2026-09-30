@@ -1,0 +1,22 @@
+;; Fibonacci two ways, with a timing of the slow one.
+
+(import (scheme base) (scheme write) (scheme time))
+
+(define (fib-slow n)
+  (if (< n 2) n (+ (fib-slow (- n 1)) (fib-slow (- n 2)))))
+
+(define (fib n)
+  (let loop ((a 0) (b 1) (n n))
+    (if (= n 0) a (loop b (+ a b) (- n 1)))))
+
+(define (time thunk)
+  (let* ((start (current-jiffy))
+         (result (thunk))
+         (elapsed (/ (- (current-jiffy) start) (jiffies-per-second))))
+    (display "took ") (display (inexact elapsed)) (display "s") (newline)
+    result))
+
+(display "(fib 100) = ") (display (fib 100)) (newline)
+
+(define result (time (lambda () (fib-slow 25))))
+(display "(fib-slow 25) = ") (display result) (newline)

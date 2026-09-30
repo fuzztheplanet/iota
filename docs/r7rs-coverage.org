@@ -1,0 +1,119 @@
+#+TITLE: R7RS-small coverage
+#+OPTIONS: toc:t num:nil
+
+What iota covers of the report. The status column is =yes=, =part= with
+a note, or =no=. Every =yes= row with observable behaviour has a test
+behind it.
+
+* 2. Lexical conventions
+
+  | Feature                          | Status | Note                                    |
+  |----------------------------------+--------+-----------------------------------------|
+  | identifiers, =\vert=-piped        | yes    |                                         |
+  | case sensitivity, =#!fold-case=  | yes    | =#!fold-case= and =#!no-fold-case=      |
+  | =#t= =#f= =#true= =#false=       | yes    |                                         |
+  | numbers (see 6.2)                | yes    | one radix and one exactness prefix      |
+  | characters, names, =#\xNN=       | yes    | range and surrogates checked            |
+  | strings, escapes, =\x...;=       | yes    |                                         |
+  | line, block and datum comments   | yes    | block comments nest                     |
+  | datum labels =#0=# and =#0#=     | yes    | reader, =write=, =write-shared=         |
+
+* 4. Expressions
+
+  | Form                             | Status | Note                                    |
+  |----------------------------------+--------+-----------------------------------------|
+  | quote, self-evaluating           | yes    | vectors and bytevectors self-evaluate   |
+  | lambda, all formal shapes        | yes    |                                         |
+  | if, set!                         | yes    | =set!= of an imported binding is an error |
+  | cond and case, with ==>=         | yes    | =else= and ==>= matched by binding      |
+  | and, or, when, unless            | yes    |                                         |
+  | let, let*, letrec, letrec*       | yes    | use before init is an error             |
+  | named let, do                    | yes    |                                         |
+  | let-values, let*-values          | yes    |                                         |
+  | begin                            | yes    |                                         |
+  | quasiquote, nested, splicing     | yes    | vectors too                             |
+  | delay, delay-force, force        | yes    | chapter 7.3 semantics, constant space   |
+  | make-promise, promise?           | yes    |                                         |
+  | parameterize, make-parameter     | yes    | converter, restored on re-entry         |
+  | guard, with ==>= and re-raise    | yes    | re-raise in the raise's dynamic env     |
+  | case-lambda                      | yes    |                                         |
+  | cond-expand                      | yes    | features: r7rs exact-closed ratios      |
+  |                                  |        | ieee-float full-unicode iota, and =(library ...)= |
+  | include, include-ci              | yes    | relative to the including file          |
+  | syntax-rules                     | yes    | hygienic by renaming. nested ellipsis,  |
+  |                                  |        | literals, =_=, custom ellipsis, =(... t)= |
+  | define-syntax, let-syntax, letrec-syntax | yes |                                    |
+  | syntax-error                     | yes    | at expansion time                       |
+
+* 5. Program structure
+
+  | Feature                          | Status | Note                                    |
+  |----------------------------------+--------+-----------------------------------------|
+  | define, both shapes              | yes    | and MIT curried define                  |
+  | define-values                    | yes    |                                         |
+  | define-record-type               | yes    | type name bound to the descriptor       |
+  | internal defines                 | yes    | letrec* semantics                       |
+  | define-library, import           | yes    | own environment per library. exports    |
+  |                                  |        | enforced. only, except, prefix, rename. |
+  |                                  |        | include-library-declarations, cond-expand |
+  | library files                    | yes    | =a/b.iota= on the search path           |
+
+* 6. Standard procedures
+
+  Every procedure of every standard library is present. Startup checks
+  the export lists in Iota.Library against the implementation
+  environment, so a missing name fails at boot rather than at first use.
+  The rows that needed some thought:
+
+  | Feature                          | Status | Note                                    |
+  |----------------------------------+--------+-----------------------------------------|
+  | eq?, eqv?, equal?                | yes    | equal? terminates on cycles, union-find |
+  | exact rationals, bignums         | yes    |                                         |
+  | inexact reals, +inf.0, +nan.0, -0.0 | yes | =(eqv? 0.0 -0.0)= is #f                 |
+  | complex numbers                  | yes    | rectangular and polar syntax, exact and |
+  |                                  |        | inexact, (scheme complex), sqrt, expt,  |
+  |                                  |        | exp, log and the trigonometric ones     |
+  | exact and inexact comparison     | yes    | exact, including against infinities     |
+  | number->string, string->number   | yes    | radices 2, 8, 10 and 16 only. positional |
+  |                                  |        | decimal output                          |
+  | char predicates                  | yes    | Unicode categories. digit-value         |
+  | char-foldcase, string-foldcase, string-ci | yes | full case folding for strings    |
+  | apply, map, for-each, n-ary      | yes    | stop at the shortest list. continuation safe |
+  | call/cc                          | yes    | re-entrant                              |
+  | dynamic-wind                     | yes    | before and after replayed on every transition |
+  | exceptions (6.11)                | yes    | handler stack. raise-continuable. guard. |
+  |                                  |        | error-object?, file-error?, read-error? |
+  | eval, environment                | yes    | (scheme eval). scheme-report-environment |
+  | ports                            | yes    | string, bytevector, file, binary. read  |
+  |                                  |        | is incremental on handles               |
+  | write, write-shared, write-simple | yes   | labels for cycles, for everything shared, or none |
+  | (scheme process-context)         | yes    | exit unwinds dynamic-wind. emergency-exit |
+  | (scheme time)                    | yes    | current-second is on the TAI scale      |
+  | (scheme r5rs)                    | yes    |                                         |
+
+* Deviations and extensions
+
+  1. A complex number is exact only when both parts are. Mixing an
+     exact and an inexact part makes both inexact, so =1+2.0i= is
+     =1.0+2.0i=. A real number with an inexact zero imaginary part stays
+     complex, as in the report, so =(real? 1.0+0.0i)= is =#f=.
+  2. The repl and scripts start with every standard library imported.
+     An explicit =(import ...)= is accepted and is what a portable
+     program should write. A =define-library= starts empty.
+  3. Extensions: =[= and =]= as parentheses, =named-lambda=, curried
+     =define=, =(define x)=, =(force x)= returning =x= when =x= is not a
+     promise, one-argument =eval= in the interaction environment, and the
+     =(iota extras)= library.
+  4. =(eqv? (vector) (vector))= is =#f=, since they are fresh objects.
+     The report leaves it unspecified.
+  5. A continuation captured inside a =define-library= body, or across
+     top level forms of a program, and invoked after that body has
+     finished re-enters a computation nobody is waiting for. The report
+     leaves this to the implementation and I have not needed anything
+     better.
+  6. Literal constants are immutable. That covers quoted data, string,
+     vector and bytevector literals, and the result of =symbol->string=.
+     The mutators raise an error instead of silently changing program
+     text.
+  7. A definition after an expression in a body is a syntax error. The
+     top level is not affected.

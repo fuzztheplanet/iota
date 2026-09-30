@@ -1,0 +1,9 @@
+#+TITLE: Examples
+
+Small programs that show one thing each. Run any of them with
+=iota examples/NAME.iota= from the top of the repository, or with
+=cabal run iota -- examples/NAME.iota= if you have not installed the binary.
+
+  - =fib.iota=, exact bignums and the time library.
+  - =generator.iota=, a generator built from re-entrant continuations.
+  - =stack.iota=, importing a library from =my/stack.iota= with a prefix.

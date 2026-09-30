@@ -1,0 +1,29 @@
+;; A generator built from call/cc. Each call to the generator resumes the
+;; for-each where it left off, which only works because continuations in
+;; iota can be re-entered.
+
+(import (scheme base) (scheme write))
+
+(define (make-generator lst)
+  (define return #f)
+  (define resume #f)
+  (lambda ()
+    (call/cc
+      (lambda (r)
+        (set! return r)
+        (if resume
+            (resume 'go)
+            (begin
+              (for-each
+                (lambda (x)
+                  (call/cc (lambda (k) (set! resume k) (return x))))
+                lst)
+              (return 'done)))))))
+
+(define next (make-generator '(a b c)))
+
+(let loop ((x (next)))
+  (write x)
+  (newline)
+  (unless (eq? x 'done)
+    (loop (next))))

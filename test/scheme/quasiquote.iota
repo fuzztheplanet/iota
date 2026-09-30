@@ -1,0 +1,6 @@
+; quasiquote: splicing, nesting, vectors
+(define xs '(2 3))
+(list `(1 ,@xs 4)
+      `(a ,(+ 1 1))
+      `#(0 ,(car xs))
+      `(nested `(deeper ,(not-evaluated))))

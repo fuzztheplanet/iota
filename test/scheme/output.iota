@@ -1,0 +1,8 @@
+; the golden runner records what gets displayed, not just the last value
+(display "line one")
+(newline)
+(for-each (lambda (x) (display x) (display " ")) '(1 2 3))
+(newline)
+(parameterize ((current-output-port (open-output-string)))
+  (display "swallowed"))          ; goes to the string port, not the log
+(+ 40 2)

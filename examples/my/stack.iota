@@ -1,0 +1,11 @@
+(define-library (my stack)
+  (import (scheme base))
+  (export make-stack push! pop! empty?)
+  (begin
+    (define (make-stack) (list '*stack*))
+    (define (push! s x) (set-cdr! s (cons x (cdr s))))
+    (define (pop! s)
+      (let ((x (cadr s)))
+        (set-cdr! s (cddr s))
+        x))
+    (define (empty? s) (null? (cdr s)))))

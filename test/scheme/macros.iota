@@ -1,0 +1,16 @@
+; syntax-rules: recursive macros, ellipsis, literals
+(define-syntax my-and
+  (syntax-rules ()
+    ((_) #t)
+    ((_ e) e)
+    ((_ e1 e2 ...) (if e1 (my-and e2 ...) #f))))
+
+(define-syntax swap!
+  (syntax-rules ()
+    ((_ a b) (let ((tmp a)) (set! a b) (set! b tmp)))))
+
+(define x 1)
+(define y 2)
+(swap! x y)
+
+(list (my-and) (my-and 1 2 3) (my-and 1 #f 3) x y)

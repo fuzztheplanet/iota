@@ -1,0 +1,6 @@
+; a million iterations. without proper tail calls this never finishes
+(define (countdown n)
+  (if (= n 0)
+      'lift-off
+      (countdown (- n 1))))
+(countdown 1000000)

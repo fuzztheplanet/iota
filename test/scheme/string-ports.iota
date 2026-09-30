@@ -1,0 +1,8 @@
+; accumulate output in a string port
+(call-with-output-string
+  (lambda (port)
+    (for-each (lambda (n)
+                (display n port)
+                (display " " port))
+              '(1 2 3))
+    (write "done" port)))

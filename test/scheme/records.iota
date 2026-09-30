@@ -1,0 +1,11 @@
+; define-record-type, the whole thing
+(define-record-type point
+  (make-point x y)
+  point?
+  (x point-x set-point-x!)
+  (y point-y))
+
+(define p (make-point 3 4))
+(set-point-x! p 30)
+
+(list (point? p) (point? 5) (point-x p) (point-y p))
