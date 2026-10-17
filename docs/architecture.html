@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How iota is put together</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-scheme.min.js" integrity="sha384-/rCp5BzL+04pYmfGht9VvqwqjzXHkjdUYJem8MrTgf2MOM5lAErmsxzZiw1kr4Kr" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-haskell.min.js" integrity="sha384-sybwp8DLY2QpJ1Cwga2P6wyppZICCcuahD9IxUFS12CqhCOq2TIWUyd4BuD0MZgO" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-bash.min.js" integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15" crossorigin="anonymous"></script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+if (!window.Prism || !Prism.highlightElement) return;
+/* Org marks blocks as pre.src-LANG > code; Prism wants the class language-LANG on the code element. */
+document.querySelectorAll("pre.src > code").forEach(function (code) {
+var m = code.parentElement.className.match(/\bsrc-(\S+)/);
+if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
+});
+});</script>
+<style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">How iota is put together</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#the-pipeline">1. The pipeline</a></li>
+<li><a href="#datum-and-value-are-different-types">2. Datum and Value are different types</a></li>
+<li><a href="#the-evaluator-runs-in-io-in-continuation-passing-style">3. The evaluator runs in IO, in continuation passing style</a></li>
+<li><a href="#errors">4. Errors</a></li>
+<li><a href="#syntactic-environments-and-hygiene">5. Syntactic environments and hygiene</a></li>
+<li><a href="#libraries">6. Libraries</a></li>
+<li><a href="#the-standard-ports">7. The standard ports</a></li>
+<li><a href="#identity-and-constants">8. Identity and constants</a></li>
+<li><a href="#numbers">9. Numbers</a></li>
+<li><a href="#strings">10. Strings</a></li>
+<li><a href="#source-locations">11. Source locations</a></li>
+<li><a href="#the-error-boundary-and-the-dynamic-state">12. The error boundary and the dynamic state</a></li>
+<li><a href="#module-dependencies">13. Module dependencies</a></li>
+</ul>
+</div>
+</div>
+<p>
+<a href="index.html">↑ Back to the index</a>
+</p>
+
+<p>
+These are notes to myself. Where they disagree with the code, the code
+is right and I need to fix this file.
+</p>
+<div id="outline-container-the-pipeline" class="outline-2">
+<h2 id="the-pipeline"><span class="section-number-2">1.</span> The pipeline</h2>
+<div class="outline-text-2" id="text-1">
+<pre class="example" id="org1f9eaff">
+Text -&gt; Reader -&gt; Datum -&gt; Expand -&gt; Core -&gt; compile -&gt; Code -&gt; run -&gt; Value -&gt; Printer -&gt; Text
+</pre>
+
+<p>
+The reader turns text into a Datum, which is immutable. The expander
+turns one datum into Core, with macros expanded, derived forms
+rewritten, every identifier resolved to a local slot or a global cell,
+and bodies scanned for internal definitions. The compiler in Iota.Eval
+turns Core into Code, a Haskell closure in continuation passing style,
+and running that produces a Value. The printer takes it from there.
+</p>
+
+<p>
+Expansion happens once per top level form, before anything runs. A
+macro inside a loop is expanded once. The old iota expanded on every
+iteration and I never noticed how slow that made it until I measured.
+</p>
+</div>
+</div>
+<div id="outline-container-datum-and-value-are-different-types" class="outline-2">
+<h2 id="datum-and-value-are-different-types"><span class="section-number-2">2.</span> Datum and Value are different types</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The tutorials use one LispVal type for both syntax and values. I split
+them. The reader stays almost pure, which makes the parser tests plain
+equality checks, and the expander can pattern match on ordinary data.
+</p>
+
+<p>
+Datum has one constructor the reader never produces, DAlias, for an
+identifier renamed by a macro expansion. See the section on hygiene.
+datumToValue builds the mutable value a quoted datum stands for and
+turns <code>#n=</code> and <code>#n#</code> labels into shared or cyclic structure.
+</p>
+</div>
+</div>
+<div id="outline-container-the-evaluator-runs-in-io-in-continuation-passing-style" class="outline-2">
+<h2 id="the-evaluator-runs-in-io-in-continuation-passing-style"><span class="section-number-2">3.</span> The evaluator runs in IO, in continuation passing style</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Everything runs in plain IO. Pairs, strings, vectors and variable slots
+are mutable. Errors and exits are Haskell exceptions where that is the
+simplest way to model them. What keeps it from being a toy is that
+compiled code is in CPS:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>type K    = Value -&gt; IO Value
+type Code = Frame -&gt; K -&gt; IO Value
+</code></pre>
+</div>
+
+<p>
+Every Scheme call is a Haskell tail call with an explicit
+continuation. Proper tail calls follow from that, and so does the fact
+that non-tail recursion does not grow the Haskell stack, since pending
+work is a chain of closures on the heap. Continuations are first class
+and re-entrant. call/cc hands out the current K together with the
+dynamic state. Applying it later replays the dynamic-wind transitions
+and calls the closure again. Generators and coroutines work.
+</p>
+
+<p>
+The dynamic state, which is the wind list and the handler stack, lives
+in an IORef in the Runtime. Anything that changes it saves the old
+state, changes it, and restores it in the continuation it passes on.
+Invoking a continuation installs whatever state it captured.
+</p>
+
+<p>
+The cost is that deep non-tail recursion keeps every pending
+continuation alive, and the generational collector keeps copying them.
+The executable runs with a 64 MB nursery, which makes this mostly go
+away.
+</p>
+</div>
+</div>
+<div id="outline-container-errors" class="outline-2">
+<h2 id="errors"><span class="section-number-2">4.</span> Errors</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+A Haskell primitive that fails throws a SchemeError. applyK catches it
+at the call site and hands the matching condition object to the
+current Scheme handler, with the continuation of the failing call. So
+a type error in car looks like an ordinary raise from the Scheme side.
+When no handler is installed the error escapes to the boundary in
+Iota.Interpreter.runText, which prints it.
+</p>
+
+<p>
+with-exception-handler, raise, raise-continuable and guard are
+implemented directly on the handler stack. A handler runs with the
+stack minus itself. raise-continuable delivers the handler's value to
+the raise point. raise raises a second exception if the handler
+returns. guard escapes to its own continuation before trying its
+clauses, and if none matches it goes back into the dynamic environment
+of the raise and raises again from there. That last part is what
+section 4.2.7 of the report describes and it is easy to skip.
+</p>
+
+<p>
+ExitCode is the one exception that goes all the way up on purpose.
+exit unwinds every dynamic-wind first. emergency-exit does not.
+</p>
+</div>
+</div>
+<div id="outline-container-syntactic-environments-and-hygiene" class="outline-2">
+<h2 id="syntactic-environments-and-hygiene"><span class="section-number-2">5.</span> Syntactic environments and hygiene</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+The expander resolves identifiers in a SynEnv, a chain of ribs over a
+GlobalEnv. A rib is one lexical contour, and it is mutable so a body
+can add internal definitions as it finds them. The GlobalEnv is the
+table of a library or program. An identifier denotes a local variable,
+a global cell, a core or auxiliary keyword, or a macro.
+</p>
+
+<p>
+syntax-rules is hygienic by renaming. Every identifier a template
+introduces becomes a fresh DAlias that remembers the environment the
+macro was defined in. Resolving an alias first looks for a binding of
+the alias itself, which is what a let produced by the same expansion
+creates. Otherwise it resolves the original identifier where the macro
+was defined. A template's tmp cannot capture the user's tmp, and a
+template's list still means list if the use site has rebound it.
+Literals like else are compared with free-identifier=?.
+</p>
+
+<p>
+The derived forms of chapter 4.2 are rewritten inside the expander,
+roughly as chapter 7.3 does it. The identifiers those rewrites
+introduce are aliases into the implementation environment, so they are
+hygienic for the same reason.
+</p>
+</div>
+</div>
+<div id="outline-container-libraries" class="outline-2">
+<h2 id="libraries"><span class="section-number-2">6.</span> Libraries</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The implementation environment holds every primitive, every core
+keyword and everything defined in lib/iota/stdlib.iota. The standard
+libraries are views onto it. Iota.Library lists what each one exports,
+following Appendix A, and startup checks that every listed name
+exists. A define-library gets a fresh global environment, runs its
+declarations in order and registers its exports. import copies
+denotations into the importing environment, sharing the variable
+cells, after applying only, except, prefix and rename. A library that
+is not registered is looked up as a/b.iota next to the
+importing file and then on IOTA_LIBRARY_PATH.
+</p>
+
+<p>
+A program environment, meaning the repl or a script, starts with every
+standard library and (iota extras) imported. Defining a name the
+program imported shadows it with the program's own cell. Assigning an
+imported binding is a syntax error.
+</p>
+</div>
+</div>
+<div id="outline-container-the-standard-ports" class="outline-2">
+<h2 id="the-standard-ports"><span class="section-number-2">7.</span> The standard ports</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+The three standard ports are parameter objects, so parameterize
+redirects every display and read that does not name a port. Input
+handle ports carry a pushback buffer. read pulls lines until the
+buffer holds a complete datum and leaves the rest, which is what
+makes it usable at a terminal.
+</p>
+</div>
+</div>
+<div id="outline-container-identity-and-constants" class="outline-2">
+<h2 id="identity-and-constants"><span class="section-number-2">8.</span> Identity and constants</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+Pairs, vectors, bytevectors, strings, records, ports, closures and
+continuations each carry an Int identity from Iota.Counter. eqv?
+compares it. equal? uses it for the union-find fallback that lets
+cyclic comparison terminate. write uses it to find the cycles, or for
+write-shared the shared structure, that need <code>#n=</code> and <code>#n#</code> labels.
+</p>
+
+<p>
+The sign of the identity says whether the object is a literal.
+datumToValue builds mutable data, for read. literalToValue builds
+constants, for quoted data and literals in program text. The mutators
+call requireMutable first. Altering a constant is an error in the
+report and this is how it gets caught.
+</p>
+</div>
+</div>
+<div id="outline-container-numbers" class="outline-2">
+<h2 id="numbers"><span class="section-number-2">9.</span> Numbers</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+A Number is an exact Rational, an inexact Double, or a Complex made of
+two of those. makeRectangular is the only constructor for the complex
+case. It collapses an exact zero imaginary part to the real part and
+makes both parts inexact when either is, so the rest of Iota.Number
+can pattern match on Exact and Inexact and only check for Complex at
+the top of an operation. The arithmetic on complex numbers is written
+in terms of the real arithmetic, so contagion and exact division come
+along without extra work. The transcendental functions go through
+Data.Complex, and a real argument the real version cannot handle,
+such as the log of a negative number, is retried on the complex
+version.
+</p>
+</div>
+</div>
+<div id="outline-container-strings" class="outline-2">
+<h2 id="strings"><span class="section-number-2">10.</span> Strings</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+A string is a mutable unboxed vector of characters. string-ref,
+string-set! and string-length are O(1) and string-copy! is O(n). The
+read-only primitives convert to Text first with stringText. That is
+O(n), but those operations were O(n) already.
+</p>
+</div>
+</div>
+<div id="outline-container-source-locations" class="outline-2">
+<h2 id="source-locations"><span class="section-number-2">11.</span> Source locations</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+The reader can attach the position of each top level form. The
+interpreter records the location of the form it is running, and the
+error boundary prefixes an error from a file with it. Locations are
+per top level form, not per expression. I did not want position
+wrappers in Datum that the expander would have to look through
+everywhere. This is good enough for now.
+</p>
+</div>
+</div>
+<div id="outline-container-the-error-boundary-and-the-dynamic-state" class="outline-2">
+<h2 id="the-error-boundary-and-the-dynamic-state"><span class="section-number-2">12.</span> The error boundary and the dynamic state</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+When an error reaches runText the dynamic extent of the form is
+abandoned. The dynamic-wind frames it was inside are unwound, which
+undoes parameterize, and the dynamic state goes back to what it was
+before the form. exit has already unwound by the time its ExitCode
+arrives, and emergency-exit must not unwind, so both skip this step.
+</p>
+</div>
+</div>
+<div id="outline-container-module-dependencies" class="outline-2">
+<h2 id="module-dependencies"><span class="section-number-2">13.</span> Module dependencies</h2>
+<div class="outline-text-2" id="text-13">
+<pre class="example" id="org12d695e">
+Types &lt;- Counter, Number &lt;- Value &lt;- Syntax &lt;- SyntaxRules
+  ^                         ^
+Reader                   Printer, Eval &lt;- Library &lt;- Expand.Common &lt;- Expand.Derived
+                                                             ^         Expand.Library
+                                                             +-------- Expand
+                                                                          ^
+                                                                   Primitives/*
+                                                                          ^
+                                                                 Interpreter &lt;- Repl, CLI
+</pre>
+</div>
+</div>
+</div>
+</body>
+</html>

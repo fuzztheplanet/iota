@@ -21,6 +21,8 @@ category:           Language
 build-type:         Simple
 extra-doc-files:    README.org
                     examples/README.org
+                    docs/index.org
+                    docs/setup.org
                     docs/architecture.org
                     docs/iota.org
                     docs/r7rs-coverage.org
@@ -28,6 +30,8 @@ extra-doc-files:    README.org
 tested-with:        GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.2
 
 extra-source-files: lib/iota/stdlib.iota
+                    docs/Makefile
+                    docs/export.el
                     examples/*.iota
                     examples/my/*.iota
                     test/scheme/*.iota

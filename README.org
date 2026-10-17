@@ -1,28 +1,24 @@
 #+TITLE: iota
 
-[[file:LICENSE][https://img.shields.io/badge/license-MIT-blue.svg]]
-[[https://small.r7rs.org/][https://img.shields.io/badge/scheme-R7RS--small-green.svg]]
-
-An R7RS-small Scheme interpreter written in Haskell.
+A R7RS-small Scheme interpreter written in Haskell.
 
 * About
 
 /iota/ implements the whole of [[https://small.r7rs.org/][R7RS-small]], as far as the test suite and the
-examples in the report can tell. That includes the things small Schemes
-usually skip: exact rationals and complex numbers, hygienic =syntax-rules=,
-re-entrant continuations with a correct =dynamic-wind=, the full exception
-system and real libraries. It is a single self contained binary with a
-readline style repl.
+examples in the report can tell. That includes: exact rationals and complex
+numbers, hygienic =syntax-rules=, re-entrant continuations with a correct
+=dynamic-wind=, the full exception system and real libraries. It is a single
+self contained binary with a readline style /repl/.
 
-I started iota on my own, years ago, working through the two /Write Yourself a
-Scheme/ tutorials by hand. That version was a learning exercise and never got
-close to the report. With the rise of AI I picked the name back up and rebuilt
-it vibe-coded, to see what the result would look like. So, to be clear: this
-project has been mostly (read: entirely) vibe-coded. I said what I wanted, a
-language model wrote the code, and I read it, ran it and sent it back until the
-tests and the report were happy. The decisions about how it should work are
-mine. Most of the typing is not. It does everything I have asked of it so far,
-but I would not put it anywhere important.
+*Disclaimer*: I started iota on my own, years ago, working through the two
+/Write Yourself a Scheme/ tutorials by hand. That version was a learning
+exercise and never got close to the report. With the rise of AI I picked the
+name back up and rebuilt it vibe-coded, to see what the result would look like.
+So, to be clear: this project has been mostly (read: entirely) vibe-coded. I
+said what I wanted, a language model wrote the code, and I read it, ran it and
+sent it back until the tests and the report were happy. The decisions about how
+it should work are mine. Most of the typing is not. It does everything I have
+asked of it so far, but I would not put it anywhere important.
 
 Things I read while writing it:
 
@@ -31,33 +27,14 @@ Things I read while writing it:
   - [[https://github.com/adamwespiser/scheme][adamwespiser/scheme]]
   - the [[https://small.r7rs.org/attachment/r7rs.pdf][R7RS-small report]], chapter 7.3 above all
 
-* Status
-
-Version 0.1. The language is complete with respect to the report and the
-interface is not going to change, but the number is low because nobody has
-run anything large on it yet. Bug reports with a small program attached are
-the most useful thing you can send.
-
-Known limitations:
-
-  - Performance is that of a straightforward CPS interpreter. Fine for
-    scripts and for learning, not for number crunching.
-  - No foreign function interface and no threads.
-  - Error messages give the top level form an error occurred in, not the
-    exact expression.
-
 * Building
-
-You need GHC 9.4 or newer and cabal 3.4 or newer. GHC 9.4, 9.6 and 9.8 are
-known to work. On Arch that is =pacman -S ghc cabal-install=. Elsewhere,
-[[https://www.haskell.org/ghcup/][ghcup]] works.
 
 #+begin_src sh
 git clone https://github.com/fuzztheplanet/iota.git
 cd iota
 cabal build
 cabal test
-cabal install         # puts an iota binary on cabal's install path, usually ~/.cabal/bin
+cabal install    # puts an iota binary on cabal's install path, usually ~/.cabal/bin
 #+end_src
 
 The executable is self contained. The Scheme half of the standard library is
@@ -91,9 +68,8 @@ A session looks like this:
 The repl completes bound names on tab, keeps its history under
 =~/.local/state/iota/=, continues an unbalanced line on the next one and has a
 few =:= commands. =:help= lists them. Scripts and the repl start with every
-standard library imported, so you can type =(display "hi")= without an
-=import= first. A portable program should still say =(import (scheme base))=
-at the top.
+standard library imported, so you can type =(display "hi")= without an =import=
+first. A portable program should still say =(import (scheme base))= at the top.
 
 Source files end in =.iota=, scripts and libraries alike. =(import (my lib))=
 looks for =my/lib.iota= next to the importing file and then in the directories
@@ -113,6 +89,9 @@ runs one of them.
   - [[file:docs/hacking.org][docs/hacking.org]], building, testing, where things go, and how to send a
     change.
   - =cabal haddock= builds the API documentation for the library.
+
+They are published at https://fuzztheplanet.github.io/iota/. =make -C docs html=
+rebuilds the HTML, with [[file:docs/index.org][docs/index.org]] as the front page. It needs Emacs.
 
 * Coverage
 
@@ -141,16 +120,6 @@ The few places where iota goes beyond the report or picks one of the choices
 it leaves open are listed at the end of [[file:docs/r7rs-coverage.org][docs/r7rs-coverage.org]], next to the
 full table.
 
-The report itself is at [[https://small.r7rs.org/][small.r7rs.org]] and the PDF is
-[[https://small.r7rs.org/attachment/r7rs.pdf][r7rs.pdf]]. Chapter 4 covers the syntax, chapter 6 the procedures and chapter 7
-the formal grammar and the reference implementations of the derived forms.
-
-* Contributing
-
-Bug reports and patches are welcome. Run =cabal test= before sending a change,
-keep =-Wall= clean, and add a test for whatever you fixed. A golden test is
-one file under =test/scheme/=. [[file:docs/hacking.org][docs/hacking.org]] has the rest.
-
-* License
-
-MIT. See [[file:LICENSE][LICENSE]].
+The report itself is at [[https://small.r7rs.org/][small.r7rs.org]] and the PDF is [[https://small.r7rs.org/attachment/r7rs.pdf][r7rs.pdf]]. Chapter 4 covers
+the syntax, chapter 6 the procedures and chapter 7 the formal grammar and the
+reference implementations of the derived forms.

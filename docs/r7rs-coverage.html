@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>R7RS-small coverage</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-scheme.min.js" integrity="sha384-/rCp5BzL+04pYmfGht9VvqwqjzXHkjdUYJem8MrTgf2MOM5lAErmsxzZiw1kr4Kr" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-haskell.min.js" integrity="sha384-sybwp8DLY2QpJ1Cwga2P6wyppZICCcuahD9IxUFS12CqhCOq2TIWUyd4BuD0MZgO" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-bash.min.js" integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15" crossorigin="anonymous"></script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+if (!window.Prism || !Prism.highlightElement) return;
+/* Org marks blocks as pre.src-LANG > code; Prism wants the class language-LANG on the code element. */
+document.querySelectorAll("pre.src > code").forEach(function (code) {
+var m = code.parentElement.className.match(/\bsrc-(\S+)/);
+if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
+});
+});</script>
+<style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">R7RS-small coverage</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#2-lexical-conventions">2. Lexical conventions</a></li>
+<li><a href="#4-expressions">4. Expressions</a></li>
+<li><a href="#5-program-structure">5. Program structure</a></li>
+<li><a href="#6-standard-procedures">6. Standard procedures</a></li>
+<li><a href="#deviations-and-extensions">Deviations and extensions</a></li>
+</ul>
+</div>
+</div>
+<p>
+<a href="index.html">↑ Back to the index</a>
+</p>
+
+<p>
+What iota covers of the report. The status column is <code>yes</code>, <code>part</code> with
+a note, or <code>no</code>. Every <code>yes</code> row with observable behaviour has a test
+behind it.
+</p>
+<div id="outline-container-2-lexical-conventions" class="outline-2">
+<h2 id="2-lexical-conventions">2. Lexical conventions</h2>
+<div class="outline-text-2" id="text-2-lexical-conventions">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Feature</th>
+<th scope="col" class="org-left">Status</th>
+<th scope="col" class="org-left">Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">identifiers, &vert;-piped</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">case sensitivity, <code>#!fold-case</code></td>
+<td class="org-left">yes</td>
+<td class="org-left"><code>#!fold-case</code> and <code>#!no-fold-case</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>#t</code> <code>#f</code> <code>#true</code> <code>#false</code></td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">numbers (see 6.2)</td>
+<td class="org-left">yes</td>
+<td class="org-left">one radix and one exactness prefix</td>
+</tr>
+
+<tr>
+<td class="org-left">characters, names, <code>#\xNN</code></td>
+<td class="org-left">yes</td>
+<td class="org-left">range and surrogates checked</td>
+</tr>
+
+<tr>
+<td class="org-left">strings, escapes, <code>\x...;</code></td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">line, block and datum comments</td>
+<td class="org-left">yes</td>
+<td class="org-left">block comments nest</td>
+</tr>
+
+<tr>
+<td class="org-left">datum labels <code>#0=</code> and <code>#0#</code></td>
+<td class="org-left">yes</td>
+<td class="org-left">reader, <code>write</code>, <code>write-shared</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-4-expressions" class="outline-2">
+<h2 id="4-expressions">4. Expressions</h2>
+<div class="outline-text-2" id="text-4-expressions">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Form</th>
+<th scope="col" class="org-left">Status</th>
+<th scope="col" class="org-left">Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">quote, self-evaluating</td>
+<td class="org-left">yes</td>
+<td class="org-left">vectors and bytevectors self-evaluate</td>
+</tr>
+
+<tr>
+<td class="org-left">lambda, all formal shapes</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">if, set!</td>
+<td class="org-left">yes</td>
+<td class="org-left"><code>set!</code> of an imported binding is an error</td>
+</tr>
+
+<tr>
+<td class="org-left">cond and case, with <code>=&gt;</code></td>
+<td class="org-left">yes</td>
+<td class="org-left"><code>else</code> and <code>=&gt;</code> matched by binding</td>
+</tr>
+
+<tr>
+<td class="org-left">and, or, when, unless</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">let, let*, letrec, letrec*</td>
+<td class="org-left">yes</td>
+<td class="org-left">use before init is an error</td>
+</tr>
+
+<tr>
+<td class="org-left">named let, do</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">let-values, let*-values</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">begin</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">quasiquote, nested, splicing</td>
+<td class="org-left">yes</td>
+<td class="org-left">vectors too</td>
+</tr>
+
+<tr>
+<td class="org-left">delay, delay-force, force</td>
+<td class="org-left">yes</td>
+<td class="org-left">chapter 7.3 semantics, constant space</td>
+</tr>
+
+<tr>
+<td class="org-left">make-promise, promise?</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">parameterize, make-parameter</td>
+<td class="org-left">yes</td>
+<td class="org-left">converter, restored on re-entry</td>
+</tr>
+
+<tr>
+<td class="org-left">guard, with <code>=&gt;</code> and re-raise</td>
+<td class="org-left">yes</td>
+<td class="org-left">re-raise in the raise's dynamic env</td>
+</tr>
+
+<tr>
+<td class="org-left">case-lambda</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">cond-expand</td>
+<td class="org-left">yes</td>
+<td class="org-left">features: r7rs exact-closed ratios</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">ieee-float full-unicode iota, and <code>(library ...)</code></td>
+</tr>
+
+<tr>
+<td class="org-left">include, include-ci</td>
+<td class="org-left">yes</td>
+<td class="org-left">relative to the including file</td>
+</tr>
+
+<tr>
+<td class="org-left">syntax-rules</td>
+<td class="org-left">yes</td>
+<td class="org-left">hygienic by renaming. nested ellipsis,</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">literals, <code>_</code>, custom ellipsis, <code>(... t)</code></td>
+</tr>
+
+<tr>
+<td class="org-left">define-syntax, let-syntax, letrec-syntax</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">syntax-error</td>
+<td class="org-left">yes</td>
+<td class="org-left">at expansion time</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-5-program-structure" class="outline-2">
+<h2 id="5-program-structure">5. Program structure</h2>
+<div class="outline-text-2" id="text-5-program-structure">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Feature</th>
+<th scope="col" class="org-left">Status</th>
+<th scope="col" class="org-left">Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">define, both shapes</td>
+<td class="org-left">yes</td>
+<td class="org-left">and MIT curried define</td>
+</tr>
+
+<tr>
+<td class="org-left">define-values</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">define-record-type</td>
+<td class="org-left">yes</td>
+<td class="org-left">type name bound to the descriptor</td>
+</tr>
+
+<tr>
+<td class="org-left">internal defines</td>
+<td class="org-left">yes</td>
+<td class="org-left">letrec* semantics</td>
+</tr>
+
+<tr>
+<td class="org-left">define-library, import</td>
+<td class="org-left">yes</td>
+<td class="org-left">own environment per library. exports</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">enforced. only, except, prefix, rename.</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">include-library-declarations, cond-expand</td>
+</tr>
+
+<tr>
+<td class="org-left">library files</td>
+<td class="org-left">yes</td>
+<td class="org-left"><code>a/b.iota</code> on the search path</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-6-standard-procedures" class="outline-2">
+<h2 id="6-standard-procedures">6. Standard procedures</h2>
+<div class="outline-text-2" id="text-6-standard-procedures">
+<p>
+Every procedure of every standard library is present. Startup checks
+the export lists in Iota.Library against the implementation
+environment, so a missing name fails at boot rather than at first use.
+The rows that needed some thought:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Feature</th>
+<th scope="col" class="org-left">Status</th>
+<th scope="col" class="org-left">Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">eq?, eqv?, equal?</td>
+<td class="org-left">yes</td>
+<td class="org-left">equal? terminates on cycles, union-find</td>
+</tr>
+
+<tr>
+<td class="org-left">exact rationals, bignums</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-left">inexact reals, +inf.0, +nan.0, -0.0</td>
+<td class="org-left">yes</td>
+<td class="org-left"><code>(eqv? 0.0 -0.0)</code> is #f</td>
+</tr>
+
+<tr>
+<td class="org-left">complex numbers</td>
+<td class="org-left">yes</td>
+<td class="org-left">rectangular and polar syntax, exact and</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">inexact, (scheme complex), sqrt, expt,</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">exp, log and the trigonometric ones</td>
+</tr>
+
+<tr>
+<td class="org-left">exact and inexact comparison</td>
+<td class="org-left">yes</td>
+<td class="org-left">exact, including against infinities</td>
+</tr>
+
+<tr>
+<td class="org-left">number-&gt;string, string-&gt;number</td>
+<td class="org-left">yes</td>
+<td class="org-left">radices 2, 8, 10 and 16 only. positional</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">decimal output</td>
+</tr>
+
+<tr>
+<td class="org-left">char predicates</td>
+<td class="org-left">yes</td>
+<td class="org-left">Unicode categories. digit-value</td>
+</tr>
+
+<tr>
+<td class="org-left">char-foldcase, string-foldcase, string-ci</td>
+<td class="org-left">yes</td>
+<td class="org-left">full case folding for strings</td>
+</tr>
+
+<tr>
+<td class="org-left">apply, map, for-each, n-ary</td>
+<td class="org-left">yes</td>
+<td class="org-left">stop at the shortest list. continuation safe</td>
+</tr>
+
+<tr>
+<td class="org-left">call/cc</td>
+<td class="org-left">yes</td>
+<td class="org-left">re-entrant</td>
+</tr>
+
+<tr>
+<td class="org-left">dynamic-wind</td>
+<td class="org-left">yes</td>
+<td class="org-left">before and after replayed on every transition</td>
+</tr>
+
+<tr>
+<td class="org-left">exceptions (6.11)</td>
+<td class="org-left">yes</td>
+<td class="org-left">handler stack. raise-continuable. guard.</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">error-object?, file-error?, read-error?</td>
+</tr>
+
+<tr>
+<td class="org-left">eval, environment</td>
+<td class="org-left">yes</td>
+<td class="org-left">(scheme eval). scheme-report-environment</td>
+</tr>
+
+<tr>
+<td class="org-left">ports</td>
+<td class="org-left">yes</td>
+<td class="org-left">string, bytevector, file, binary. read</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">is incremental on handles</td>
+</tr>
+
+<tr>
+<td class="org-left">write, write-shared, write-simple</td>
+<td class="org-left">yes</td>
+<td class="org-left">labels for cycles, for everything shared, or none</td>
+</tr>
+
+<tr>
+<td class="org-left">(scheme process-context)</td>
+<td class="org-left">yes</td>
+<td class="org-left">exit unwinds dynamic-wind. emergency-exit</td>
+</tr>
+
+<tr>
+<td class="org-left">(scheme time)</td>
+<td class="org-left">yes</td>
+<td class="org-left">current-second is on the TAI scale</td>
+</tr>
+
+<tr>
+<td class="org-left">(scheme r5rs)</td>
+<td class="org-left">yes</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-deviations-and-extensions" class="outline-2">
+<h2 id="deviations-and-extensions">Deviations and extensions</h2>
+<div class="outline-text-2" id="text-deviations-and-extensions">
+<ol class="org-ol">
+<li>A complex number is exact only when both parts are. Mixing an
+exact and an inexact part makes both inexact, so <code>1+2.0i</code> is
+<code>1.0+2.0i</code>. A real number with an inexact zero imaginary part stays
+complex, as in the report, so <code>(real? 1.0+0.0i)</code> is <code>#f</code>.</li>
+<li>The repl and scripts start with every standard library imported.
+An explicit <code>(import ...)</code> is accepted and is what a portable
+program should write. A <code>define-library</code> starts empty.</li>
+<li>Extensions: <code>[</code> and <code>]</code> as parentheses, <code>named-lambda</code>, curried
+<code>define</code>, <code>(define x)</code>, <code>(force x)</code> returning <code>x</code> when <code>x</code> is not a
+promise, one-argument <code>eval</code> in the interaction environment, and the
+<code>(iota extras)</code> library.</li>
+<li><code>(eqv? (vector) (vector))</code> is <code>#f</code>, since they are fresh objects.
+The report leaves it unspecified.</li>
+<li>A continuation captured inside a <code>define-library</code> body, or across
+top level forms of a program, and invoked after that body has
+finished re-enters a computation nobody is waiting for. The report
+leaves this to the implementation and I have not needed anything
+better.</li>
+<li>Literal constants are immutable. That covers quoted data, string,
+vector and bytevector literals, and the result of <code>symbol-&gt;string</code>.
+The mutators raise an error instead of silently changing program
+text.</li>
+<li>A definition after an expression in a body is a syntax error. The
+top level is not affected.</li>
+</ol>
+</div>
+</div>
+</div>
+</body>
+</html>

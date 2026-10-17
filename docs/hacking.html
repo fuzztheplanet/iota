@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hacking on iota</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-scheme.min.js" integrity="sha384-/rCp5BzL+04pYmfGht9VvqwqjzXHkjdUYJem8MrTgf2MOM5lAErmsxzZiw1kr4Kr" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-haskell.min.js" integrity="sha384-sybwp8DLY2QpJ1Cwga2P6wyppZICCcuahD9IxUFS12CqhCOq2TIWUyd4BuD0MZgO" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-bash.min.js" integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15" crossorigin="anonymous"></script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+if (!window.Prism || !Prism.highlightElement) return;
+/* Org marks blocks as pre.src-LANG > code; Prism wants the class language-LANG on the code element. */
+document.querySelectorAll("pre.src > code").forEach(function (code) {
+var m = code.parentElement.className.match(/\bsrc-(\S+)/);
+if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
+});
+});</script>
+<style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Hacking on iota</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#toolchain">1. Toolchain</a></li>
+<li><a href="#where-things-go">2. Where things go</a></li>
+<li><a href="#tests">3. Tests</a></li>
+<li><a href="#conventions">4. Conventions</a></li>
+<li><a href="#sending-a-change">5. Sending a change</a></li>
+<li><a href="#documentation">6. Documentation</a></li>
+<li><a href="#debugging">7. Debugging</a></li>
+<li><a href="#checking-a-build-by-hand">8. Checking a build by hand</a></li>
+<li><a href="#cutting-a-release">9. Cutting a release</a></li>
+</ul>
+</div>
+</div>
+<p>
+<a href="index.html">↑ Back to the index</a>
+</p>
+<div id="outline-container-toolchain" class="outline-2">
+<h2 id="toolchain"><span class="section-number-2">1.</span> Toolchain</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Any GHC from 9.4 onwards. On Arch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>sudo pacman -S ghc cabal-install
+</code></pre>
+</div>
+
+<p>
+Or with ghcup, which is ghcup-hs-bin on the AUR:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>ghcup install ghc recommended
+ghcup install cabal latest
+</code></pre>
+</div>
+
+<p>
+Then:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>cabal build
+cabal test
+cabal repl
+</code></pre>
+</div>
+
+<p>
+hie.yaml is checked in, so haskell-language-server finds the project
+on its own.
+</p>
+</div>
+</div>
+<div id="outline-container-where-things-go" class="outline-2">
+<h2 id="where-things-go"><span class="section-number-2">2.</span> Where things go</h2>
+<div class="outline-text-2" id="text-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Change</th>
+<th scope="col" class="org-left">Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">lexical syntax</td>
+<td class="org-left">src/Iota/Reader.hs and Test.Reader</td>
+</tr>
+
+<tr>
+<td class="org-left">a new core form</td>
+<td class="org-left">special in src/Iota/Expand.hs and specialForms in Expand/Common.hs</td>
+</tr>
+
+<tr>
+<td class="org-left">a new derived form</td>
+<td class="org-left">rewrite in src/Iota/Expand/Derived.hs, in the style of chapter 7.3</td>
+</tr>
+
+<tr>
+<td class="org-left">libraries, import, cond-expand</td>
+<td class="org-left">src/Iota/Expand/Library.hs</td>
+</tr>
+
+<tr>
+<td class="org-left">a procedure that needs Haskell</td>
+<td class="org-left">the matching module under src/Iota/Primitives/</td>
+</tr>
+
+<tr>
+<td class="org-left">a procedure that calls back into Scheme</td>
+<td class="org-left">a PrimitiveK in Iota.Primitives.Control, or write it in Scheme</td>
+</tr>
+
+<tr>
+<td class="org-left">a procedure expressible in Scheme</td>
+<td class="org-left">lib/iota/stdlib.iota, which is embedded at compile time, so rebuild</td>
+</tr>
+
+<tr>
+<td class="org-left">exporting it from a standard library</td>
+<td class="org-left">the Appendix A lists in src/Iota/Library.hs</td>
+</tr>
+
+<tr>
+<td class="org-left">printing</td>
+<td class="org-left">src/Iota/Printer.hs and Test.Printer</td>
+</tr>
+
+<tr>
+<td class="org-left">numerics, complex numbers</td>
+<td class="org-left">src/Iota/Number.hs and Test.Number</td>
+</tr>
+
+<tr>
+<td class="org-left">syntax-rules</td>
+<td class="org-left">src/Iota/SyntaxRules.hs and Test.Macro</td>
+</tr>
+
+<tr>
+<td class="org-left">evaluation and continuations</td>
+<td class="org-left">src/Iota/Eval.hs</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+When in doubt, write it in Scheme. A primitive that calls a Scheme
+procedure has to be a PrimitiveK and must not throw for Scheme level
+errors, which means using guardIO, and it is easy to get that wrong in
+a way the tests will not catch. Anything written in Scheme gets
+continuations and dynamic-wind right without trying.
+</p>
+
+<p>
+A name only becomes visible to programs once it appears in an export
+list in Iota.Library. If a listed name is not defined, startup fails
+immediately rather than at first use.
+</p>
+</div>
+</div>
+<div id="outline-container-tests" class="outline-2">
+<h2 id="tests"><span class="section-number-2">3.</span> Tests</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+cabal test runs one tasty tree:
+</p>
+
+<ol class="org-ol">
+<li>Unit tests for the pure parts, meaning the reader, the printer and
+the numbers. Unit tests for syntax-rules in Test.Macro, driven with
+a hand-built syntactic environment. QuickCheck properties in
+Test.Property for read and write round trips and number formatting.</li>
+<li>Evaluator cases in test/Test/Eval.hs and Scheme.hs. Each is an
+expression and its expected write output, run in a fresh
+interpreter.</li>
+<li>File and process tests in Test.Ports. File ports, libraries loaded
+from disk, include, error locations, exit.</li>
+<li>Golden tests. Every test/scheme/NAME.iota is run and its output,
+meaning everything it displayed followed by the written value of
+its last form, is compared against test/golden/NAME.golden. This is
+the test and test/ans layout from adamwespiser/scheme. Output is
+captured by pushing a string port onto the current-output-port
+parameter, see Iota.Interpreter.captureOutput.</li>
+</ol>
+
+<p>
+To add a golden test:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>echo '(+ 1 2)' &gt; test/scheme/my-case.iota
+cabal run iota -- run test/scheme/my-case.iota   # check it by eye
+cabal test --test-options='--accept'             # writes the .golden
+</code></pre>
+</div>
+
+<p>
+The accept flag rewrites every golden file from the current output.
+Read the diff before committing.
+</p>
+</div>
+</div>
+<div id="outline-container-conventions" class="outline-2">
+<h2 id="conventions"><span class="section-number-2">4.</span> Conventions</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>-Wall stays clean. Build with -Werror before sending a change.</li>
+<li>Language extensions go in the cabal file, not in pragmas.</li>
+<li>A helper lives in the module that owns the type, not where it was
+first needed.</li>
+<li>Comments say why, not what. If the code needs a comment to say what
+it does, the code is the problem.</li>
+<li>The report wins. When in doubt, read the relevant section of R7RS
+and do what it says. A deliberate deviation goes on the list at the
+end of docs/r7rs-coverage.org, with the reason.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sending-a-change" class="outline-2">
+<h2 id="sending-a-change"><span class="section-number-2">5.</span> Sending a change</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Open a pull request against main. Keep it to one thing. A fix comes
+with a test that fails without it. If the change is user visible,
+update docs/iota.org or docs/r7rs-coverage.org in the same change.
+Nothing is merged with a failing test suite.
+</p>
+
+<p>
+Bug reports are best with the smallest program that shows the problem,
+the output you expected, and the output of iota &ndash;version.
+</p>
+</div>
+</div>
+<div id="outline-container-documentation" class="outline-2">
+<h2 id="documentation"><span class="section-number-2">6.</span> Documentation</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The pages under docs/ are Org files. make -C docs html exports each
+one to HTML next to its source with Emacs in batch mode. GitHub Pages
+serves docs/ as it is, so the HTML is checked in. Rebuild it and commit
+it in the same change as the .org file it comes from.
+</p>
+
+<p>
+docs/export.el is what the Makefile loads into Emacs. It makes the
+export reproducible: an unchanged page gives an unchanged file, and a
+heading's id comes from its text, so a link to a section survives a
+rebuild. Renaming a heading changes its id.
+</p>
+
+<p>
+docs/setup.org holds what every page shares: the export options, the
+stylesheet, and the Prism scripts that highlight source blocks in the
+browser. Pages pull it in with <code>#+SETUPFILE: setup.org</code>. A new page
+needs that line, a link back to index.org, an entry in the list in
+index.org, and a line under extra-doc-files in iota.cabal.
+</p>
+
+<p>
+The Prism files come from cdnjs with integrity hashes. A source block
+in a new language needs its Prism component added to setup.org, and
+bumping a version means new hashes:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-debugging" class="outline-2">
+<h2 id="debugging"><span class="section-number-2">7.</span> Debugging</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+A few things that have saved me time:
+</p>
+
+<ul class="org-ul">
+<li>The repl's :ast command shows what the reader made of an expression.
+Handy when a macro seems to see the wrong shape.</li>
+<li>cabal repl, then import Iota, then evalText "(+ 1 2)" gives you the
+interpreter from ghci. newInterpreter and runText do the same with a
+persistent environment.</li>
+<li>A test in Test.Eval is one line. Write the failing case there first
+and work backwards from it.</li>
+<li>Test.Macro drives syntax-rules with a hand built environment, which
+is the quickest way to poke at a hygiene problem.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-checking-a-build-by-hand" class="outline-2">
+<h2 id="checking-a-build-by-hand"><span class="section-number-2">8.</span> Checking a build by hand</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+Before a release, or after anything that touches the
+build, run the same steps on the GHC versions listed under tested-with
+in iota.cabal:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>cabal build all --enable-tests --ghc-options=-Werror
+cabal test
+cabal haddock lib:iota
+for f in examples/*.iota; do cabal run -v0 iota -- "$f"; done
+</code></pre>
+</div>
+
+<p>
+ghcup makes switching GHC versions painless.
+</p>
+</div>
+</div>
+<div id="outline-container-cutting-a-release" class="outline-2">
+<h2 id="cutting-a-release"><span class="section-number-2">9.</span> Cutting a release</h2>
+<div class="outline-text-2" id="text-9">
+<ol class="org-ol">
+<li>The checks above, on every GHC in tested-with.</li>
+<li>cabal haddock, and read it once for anything that looks wrong.</li>
+<li>cabal check and cabal sdist. The tarball has to build on its own.</li>
+<li>Make sure docs/r7rs-coverage.org still matches what the code does,
+and that make -C docs html still exports every page.</li>
+<li>Bump the version in iota.cabal, following the PVP.</li>
+<li>Tag it, vX.Y, and push the tag.</li>
+</ol>
+</div>
+</div>
+</div>
+</body>
+</html>

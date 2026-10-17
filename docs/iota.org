@@ -1,12 +1,14 @@
 #+TITLE: Using iota
-#+OPTIONS: toc:t num:t
+#+SETUPFILE: setup.org
+
+[[file:index.org][↑ Back to the index]]
 
 * Introduction
 
   This is the user's guide. It assumes you know some Scheme and want to
   know what iota does with it. For a feature by feature comparison with
-  the report, see [[file:r7rs-coverage.org][r7rs-coverage.org]]. For how the interpreter works
-  inside, see [[file:architecture.org][architecture.org]].
+  the report, see [[file:r7rs-coverage.org][R7RS-small coverage]]. For how the interpreter works
+  inside, see [[file:architecture.org][How iota is put together]].
 
 * The command line
 
@@ -120,7 +122,7 @@
 
 * Control
 
-  Proper tail calls. =(define (loop n) (if (= n 0) 'done (loop (- n 1))))=
+  Proper tail calls. ~(define (loop n) (if (= n 0) 'done (loop (- n 1))))~
   runs in constant space for any =n=.
 
   =call/cc= works for early exits and for real coroutines, because

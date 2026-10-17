@@ -1,0 +1,635 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Using iota</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-scheme.min.js" integrity="sha384-/rCp5BzL+04pYmfGht9VvqwqjzXHkjdUYJem8MrTgf2MOM5lAErmsxzZiw1kr4Kr" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-haskell.min.js" integrity="sha384-sybwp8DLY2QpJ1Cwga2P6wyppZICCcuahD9IxUFS12CqhCOq2TIWUyd4BuD0MZgO" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-bash.min.js" integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15" crossorigin="anonymous"></script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+if (!window.Prism || !Prism.highlightElement) return;
+/* Org marks blocks as pre.src-LANG > code; Prism wants the class language-LANG on the code element. */
+document.querySelectorAll("pre.src > code").forEach(function (code) {
+var m = code.parentElement.className.match(/\bsrc-(\S+)/);
+if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
+});
+});</script>
+<style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Using iota</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#introduction">1. Introduction</a></li>
+<li><a href="#the-command-line">2. The command line</a></li>
+<li><a href="#data-types">3. Data types</a>
+<ul>
+<li><a href="#booleans">3.1. Booleans</a></li>
+<li><a href="#numbers">3.2. Numbers</a></li>
+<li><a href="#characters-and-strings">3.3. Characters and strings</a></li>
+<li><a href="#symbols">3.4. Symbols</a></li>
+<li><a href="#pairs-and-lists">3.5. Pairs and lists</a></li>
+<li><a href="#vectors-and-bytevectors">3.6. Vectors and bytevectors</a></li>
+<li><a href="#records">3.7. Records</a></li>
+</ul>
+</li>
+<li><a href="#control">4. Control</a></li>
+<li><a href="#macros">5. Macros</a></li>
+<li><a href="#libraries">6. Libraries</a></li>
+<li><a href="#the-repl">7. The repl</a></li>
+<li><a href="#the-standard-library">8. The standard library</a></li>
+</ul>
+</div>
+</div>
+<p>
+<a href="index.html">↑ Back to the index</a>
+</p>
+<div id="outline-container-introduction" class="outline-2">
+<h2 id="introduction"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This is the user's guide. It assumes you know some Scheme and want to
+know what iota does with it. For a feature by feature comparison with
+the report, see <a href="r7rs-coverage.html">R7RS-small coverage</a>. For how the interpreter works
+inside, see <a href="architecture.html">How iota is put together</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-the-command-line" class="outline-2">
+<h2 id="the-command-line"><span class="section-number-2">2.</span> The command line</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+<pre class="src src-sh"><code>iota                        # repl
+iota program.iota a b       # run a file. (command-line) =&gt; ("program.iota" "a" "b")
+iota run program.iota       # the same
+iota eval '(* 6 7)'         # evaluate one expression and print it
+iota --version
+iota --help
+</code></pre>
+</div>
+
+<p>
+A script runs with every standard library imported. Its top level
+forms are read and run one at a time, so a form can use what the
+previous one defined and a syntax error is only reported when the
+reader reaches it. The value of the last form is not printed. If you
+want output, <code>display</code> it.
+</p>
+
+<p>
+Options after the script name are passed to the script untouched, so
+<code>iota tool.iota --verbose</code> works without a <code>--</code> separator.
+</p>
+
+<p>
+Exit status is 0 when the program finishes, 1 when it dies with an
+uncaught error, and whatever <code>(exit n)</code> asked for otherwise. <code>exit</code>
+runs the pending <code>dynamic-wind</code> after thunks first. <code>emergency-exit</code>
+does not.
+</p>
+
+<p>
+Errors in files are reported with the file name, line and column of
+the top level form they happened in:
+</p>
+
+<pre class="example" id="org1f9eaff">
+$ iota bad.iota
+bad.iota:3:1: expected a pair, got: 1
+</pre>
+
+<p>
+Two environment variables matter. <code>IOTA_LIBRARY_PATH</code> is a colon
+separated list of directories to search for library files, after the
+directory of the importing file. <code>IOTA_TAI_OFFSET</code> overrides the
+TAI minus UTC offset that <code>current-second</code> adds, for the day the
+built in constant falls behind the leap second table.
+</p>
+
+<p>
+Source files are read as UTF-8 whatever the locale says, and so are
+the standard streams.
+</p>
+</div>
+</div>
+<div id="outline-container-data-types" class="outline-2">
+<h2 id="data-types"><span class="section-number-2">3.</span> Data types</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-booleans" class="outline-3">
+<h3 id="booleans"><span class="section-number-3">3.1.</span> Booleans</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+<code>#t</code> and <code>#f</code>, or <code>#true</code> and <code>#false</code>. Only <code>#f</code> is false. <code>0</code>, <code>"""</code>
+and <code>()</code> are all true.
+</p>
+</div>
+</div>
+<div id="outline-container-numbers" class="outline-3">
+<h3 id="numbers"><span class="section-number-3">3.2.</span> Numbers</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Exact integers and rationals of any size, and inexact IEEE doubles:
+</p>
+
+<pre class="example" id="org12d695e">
+iota&gt; (+ 1/3 1/6)
+1/2
+iota&gt; (expt 2 100)
+1267650600228229401496703205376
+iota&gt; (* 2 3.5)
+7.0
+iota&gt; (exact 0.5)
+1/2
+</pre>
+
+<p>
+Radix prefixes work. <code>#xff</code> is 255, <code>#b1010</code> is 10, <code>#e1.5</code> is 3/2.
+</p>
+
+<p>
+Complex numbers, in rectangular and polar notation:
+</p>
+
+<pre class="example" id="org16da779">
+iota&gt; (* +i +i)
+-1
+iota&gt; (sqrt -4)
++2i
+iota&gt; (/ 1+2i 1-2i)
+-3/5+4/5i
+iota&gt; (magnitude 3+4i)
+5
+iota&gt; (make-polar 1 3.141592653589793)
+-1.0+1.2246467991473532e-16i
+</pre>
+
+<p>
+A complex number with exact parts stays exact. <code>&lt;</code> and friends of
+that kind only take real numbers, and so do <code>abs</code>, <code>floor</code>, <code>max</code> and
+<code>positive?</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-characters-and-strings" class="outline-3">
+<h3 id="characters-and-strings"><span class="section-number-3">3.3.</span> Characters and strings</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+<code>#\a</code>, <code>#\space</code>, <code>#\x41</code>. Strings are mutable and take the full
+escape set, including <code>\n</code>, <code>\x41;</code> and line continuations. String
+literals, like every literal constant, are immutable.
+<code>(string-set! "abc" 0 #\z)</code> is an error.
+<code>(string-set! (string-copy "abc") 0 #\z)</code> is fine.
+</p>
+</div>
+</div>
+<div id="outline-container-symbols" class="outline-3">
+<h3 id="symbols"><span class="section-number-3">3.4.</span> Symbols</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+Case sensitive. <code>|two words|</code> is a symbol with a space in it.
+</p>
+</div>
+</div>
+<div id="outline-container-pairs-and-lists" class="outline-3">
+<h3 id="pairs-and-lists"><span class="section-number-3">3.5.</span> Pairs and lists</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+Mutable. A <code>set-car!</code> or <code>set-cdr!</code> is visible through every
+reference to the pair.
+</p>
+</div>
+</div>
+<div id="outline-container-vectors-and-bytevectors" class="outline-3">
+<h3 id="vectors-and-bytevectors"><span class="section-number-3">3.6.</span> Vectors and bytevectors</h3>
+<div class="outline-text-3" id="text-3-6">
+<p>
+<code>#(1 2 3)</code> and <code>#u8(0 255)</code> literals, the full set of accessors,
+<code>utf8-&gt;string</code> and <code>string-&gt;utf8</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-records" class="outline-3">
+<h3 id="records"><span class="section-number-3">3.7.</span> Records</h3>
+<div class="outline-text-3" id="text-3-7">
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(define-record-type point
+  (make-point x y)
+  point?
+  (x point-x set-point-x!)
+  (y point-y))
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-control" class="outline-2">
+<h2 id="control"><span class="section-number-2">4.</span> Control</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Proper tail calls. <code>(define (loop n) (if (= n 0) 'done (loop (- n 1))))</code>
+runs in constant space for any <code>n</code>.
+</p>
+
+<p>
+<code>call/cc</code> works for early exits and for real coroutines, because
+continuations can be re-entered:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(call/cc (lambda (return)
+  (for-each (lambda (x) (when (odd? x) (return x)))
+            '(2 4 5 6))))   ; =&gt; 5
+
+(define (make-generator lst)
+  (define return #f)
+  (define resume #f)
+  (lambda ()
+    (call/cc (lambda (r)
+      (set! return r)
+      (if resume
+          (resume 'go)
+          (begin
+            (for-each (lambda (x)
+                        (call/cc (lambda (k) (set! resume k) (return x))))
+                      lst)
+            (return 'done)))))))
+(define g (make-generator '(a b c)))
+(list (g) (g) (g) (g))        ; =&gt; (a b c done)
+</code></pre>
+</div>
+
+<p>
+The before and after thunks of <code>dynamic-wind</code> run on every entry and
+exit, including re-entry through a continuation.
+</p>
+
+<p>
+Exceptions:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(guard (e ((error-object? e) (error-object-message e)))
+  (error "boom" 1 2))       ; =&gt; "boom"
+</code></pre>
+</div>
+
+<p>
+Parameters:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(define p (make-parameter 10))
+(parameterize ((p 42)) (p)) ; =&gt; 42
+(p)                         ; =&gt; 10
+</code></pre>
+</div>
+
+<p>
+The current ports are parameters too, so redirecting output is
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(parameterize ((current-output-port (open-output-string)))
+  (display "goes to the string port"))
+</code></pre>
+</div>
+
+<p>
+and that is how the stdlib defines <code>with-output-to-file</code>.
+</p>
+
+<p>
+<code>eval</code> and <code>load</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(eval '(+ 1 2))                        ; =&gt; 3
+(eval '(+ 1 2) (interaction-environment))
+(load "some-file.iota")                ; into the current environment
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-macros" class="outline-2">
+<h2 id="macros"><span class="section-number-2">5.</span> Macros</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+<code>syntax-rules</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(define-syntax my-or
+  (syntax-rules ()
+    ((_) #f)
+    ((_ e) e)
+    ((_ e1 e2 ...) (let ((t e1)) (if t t (my-or e2 ...))))))
+</code></pre>
+</div>
+
+<p>
+Expansion is hygienic. The <code>t</code> above cannot capture a <code>t</code> at the call
+site, and <code>if</code> and <code>let</code> in the template mean what they meant where
+the macro was defined, whatever the call site has rebound. Literals
+such as <code>else</code> and <code>=&gt;</code> are matched by binding, so a locally rebound
+<code>else</code> is only a variable.
+</p>
+</div>
+</div>
+<div id="outline-container-libraries" class="outline-2">
+<h2 id="libraries"><span class="section-number-2">6.</span> Libraries</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+A program may start with <code>import</code> declarations, and the repl takes
+them at any point. The repl and scripts begin with every standard
+library imported, so <code>(import (scheme base))</code> is optional there. It is
+still what a portable program should write.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-scheme"><code>(define-library (my stack)
+  (import (scheme base))
+  (export make-stack push! pop!)
+  (begin
+    (define (make-stack) (list '*stack*))
+    (define (push! s x) (set-cdr! s (cons x (cdr s))))
+    (define (pop! s) (let ((x (cadr s))) (set-cdr! s (cddr s)) x))))
+
+(import (prefix (my stack) stack:))
+(define s (stack:make-stack))
+</code></pre>
+</div>
+
+<p>
+A library the program does not define is looked for in <code>my/stack.iota</code>
+next to the importing file, then in the directories
+listed in <code>IOTA_LIBRARY_PATH</code>. Only exported names are visible.
+<code>only</code>, <code>except</code>, <code>prefix</code> and <code>rename</code> work as in the report.
+<code>(environment '(scheme base))</code> gives <code>eval</code> an environment with those
+bindings and nothing else.
+</p>
+</div>
+</div>
+<div id="outline-container-the-repl" class="outline-2">
+<h2 id="the-repl"><span class="section-number-2">7.</span> The repl</h2>
+<div class="outline-text-2" id="text-7">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Command</th>
+<th scope="col" class="org-left">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>:help</code></td>
+<td class="org-left">list the commands</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>:ast EXPR</code></td>
+<td class="org-left">show the parsed form</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>:env [PREFIX]</code></td>
+<td class="org-left">list bound names</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>:load FILE</code></td>
+<td class="org-left">run FILE in the current environment</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>:q</code> / <code>:quit</code></td>
+<td class="org-left">exit</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Tab completes over everything bound. History is kept in
+<code>~/.local/state/iota/history</code>. Unbalanced input continues on the next
+line.
+</p>
+</div>
+</div>
+<div id="outline-container-the-standard-library" class="outline-2">
+<h2 id="the-standard-library"><span class="section-number-2">8.</span> The standard library</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+Compiled into the binary from <code>lib/iota/stdlib.iota</code> and loaded at
+startup. The non-standard extras are in <code>(iota extras)</code>, which the
+repl imports by default. That library has <code>foldl</code>, <code>foldr</code>, <code>unfold</code>,
+<code>filter</code>, <code>remove</code>, <code>partition</code>, <code>any</code>, <code>every</code>, <code>compose</code>, <code>curry</code>,
+<code>flip</code>, <code>displayln</code>, <code>print</code>, <code>string-join</code>,
+<code>call-with-output-string</code>, <code>port-&gt;string</code>, and <code>fact</code> and <code>fib</code>.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

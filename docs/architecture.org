@@ -1,5 +1,7 @@
 #+TITLE: How iota is put together
-#+OPTIONS: toc:t num:t
+#+SETUPFILE: setup.org
+
+[[file:index.org][↑ Back to the index]]
 
 These are notes to myself. Where they disagree with the code, the code
 is right and I need to fix this file.
@@ -30,7 +32,7 @@ is right and I need to fix this file.
   Datum has one constructor the reader never produces, DAlias, for an
   identifier renamed by a macro expansion. See the section on hygiene.
   datumToValue builds the mutable value a quoted datum stands for and
-  turns =#n=# labels into shared or cyclic structure.
+  turns ~#n=~ and ~#n#~ labels into shared or cyclic structure.
 
 * The evaluator runs in IO, in continuation passing style
 
@@ -137,7 +139,7 @@ is right and I need to fix this file.
   continuations each carry an Int identity from Iota.Counter. eqv?
   compares it. equal? uses it for the union-find fallback that lets
   cyclic comparison terminate. write uses it to find the cycles, or for
-  write-shared the shared structure, that need =#n=# labels.
+  write-shared the shared structure, that need ~#n=~ and ~#n#~ labels.
 
   The sign of the identity says whether the object is a literal.
   datumToValue builds mutable data, for read. literalToValue builds

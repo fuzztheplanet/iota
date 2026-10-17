@@ -1,5 +1,8 @@
 #+TITLE: R7RS-small coverage
-#+OPTIONS: toc:t num:nil
+#+SETUPFILE: setup.org
+#+OPTIONS: num:nil
+
+[[file:index.org][↑ Back to the index]]
 
 What iota covers of the report. The status column is =yes=, =part= with
 a note, or =no=. Every =yes= row with observable behaviour has a test
@@ -9,14 +12,14 @@ behind it.
 
   | Feature                          | Status | Note                                    |
   |----------------------------------+--------+-----------------------------------------|
-  | identifiers, =\vert=-piped        | yes    |                                         |
+  | identifiers, \vert{}-piped        | yes    |                                         |
   | case sensitivity, =#!fold-case=  | yes    | =#!fold-case= and =#!no-fold-case=      |
   | =#t= =#f= =#true= =#false=       | yes    |                                         |
   | numbers (see 6.2)                | yes    | one radix and one exactness prefix      |
   | characters, names, =#\xNN=       | yes    | range and surrogates checked            |
   | strings, escapes, =\x...;=       | yes    |                                         |
   | line, block and datum comments   | yes    | block comments nest                     |
-  | datum labels =#0=# and =#0#=     | yes    | reader, =write=, =write-shared=         |
+  | datum labels ~#0=~ and ~#0#~     | yes    | reader, =write=, =write-shared=         |
 
 * 4. Expressions
 

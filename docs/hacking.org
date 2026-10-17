@@ -1,5 +1,7 @@
 #+TITLE: Hacking on iota
-#+OPTIONS: toc:t num:t
+#+SETUPFILE: setup.org
+
+[[file:index.org][↑ Back to the index]]
 
 * Toolchain
 
@@ -107,6 +109,32 @@
   Bug reports are best with the smallest program that shows the problem,
   the output you expected, and the output of iota --version.
 
+* Documentation
+
+  The pages under docs/ are Org files. make -C docs html exports each
+  one to HTML next to its source with Emacs in batch mode. GitHub Pages
+  serves docs/ as it is, so the HTML is checked in. Rebuild it and commit
+  it in the same change as the .org file it comes from.
+
+  docs/export.el is what the Makefile loads into Emacs. It makes the
+  export reproducible: an unchanged page gives an unchanged file, and a
+  heading's id comes from its text, so a link to a section survives a
+  rebuild. Renaming a heading changes its id.
+
+  docs/setup.org holds what every page shares: the export options, the
+  stylesheet, and the Prism scripts that highlight source blocks in the
+  browser. Pages pull it in with =#+SETUPFILE: setup.org=. A new page
+  needs that line, a link back to index.org, an entry in the list in
+  index.org, and a line under extra-doc-files in iota.cabal.
+
+  The Prism files come from cdnjs with integrity hashes. A source block
+  in a new language needs its Prism component added to setup.org, and
+  bumping a version means new hashes:
+
+  #+begin_src sh
+    curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A
+  #+end_src
+
 * Debugging
 
   A few things that have saved me time:
@@ -141,6 +169,7 @@
   1. The checks above, on every GHC in tested-with.
   2. cabal haddock, and read it once for anything that looks wrong.
   3. cabal check and cabal sdist. The tarball has to build on its own.
-  4. Make sure docs/r7rs-coverage.org still matches what the code does.
+  4. Make sure docs/r7rs-coverage.org still matches what the code does,
+     and that make -C docs html still exports every page.
   5. Bump the version in iota.cabal, following the PVP.
   6. Tag it, vX.Y, and push the tag.

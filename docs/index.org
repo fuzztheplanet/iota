@@ -1,0 +1,36 @@
+#+TITLE: iota
+#+SUBTITLE: An R7RS-small Scheme interpreter in Haskell
+#+SETUPFILE: setup.org
+#+OPTIONS: toc:nil num:nil
+
+* What this is
+
+These pages document [[https://github.com/fuzztheplanet/iota][iota]], an interpreter for the whole of R7RS-small,
+written in Haskell. Building and installing it is covered in the
+[[https://github.com/fuzztheplanet/iota#readme][README]]. The report itself is at [[https://small.r7rs.org/][small.r7rs.org]].
+
+* The documents
+
+1. [[file:iota.org][Using iota]], the user's guide: the command line, data types, control,
+   macros, libraries, the repl and the standard library.
+2. [[file:r7rs-coverage.org][R7RS-small coverage]], the coverage table against the report, with the
+   few deviations and extensions listed at the end.
+3. [[file:architecture.org][How iota is put together]], notes on the inside of the interpreter: the
+   pipeline, the CPS evaluator, hygiene, libraries and numbers.
+4. [[file:hacking.org][Hacking on iota]], building, testing, where things go, and how to send a
+   change.
+
+=cabal haddock= builds the API documentation for the Haskell library.
+
+* Building the HTML
+
+These pages are published at https://fuzztheplanet.github.io/iota/. To
+build them yourself you need Emacs. From the top of the repository:
+
+#+begin_src sh
+  make -C docs html
+#+end_src
+
+Then open =docs/index.html=. =make -C docs clean= removes the HTML again.
+The =.org= files read fine as plain text and GitHub renders them, so the
+export is only a nicer way to read them.

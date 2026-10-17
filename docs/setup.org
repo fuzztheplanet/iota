@@ -1,0 +1,21 @@
+# Export settings shared by every page under docs/. Pages pull this in with
+# #+SETUPFILE: setup.org. It is not a page and is not exported on its own.
+# Source blocks are highlighted in the browser by Prism. A new block language
+# needs its Prism component below, with its integrity hash.
+#+OPTIONS: toc:3 num:t H:4 ^:{} tex:verbatim timestamp:nil html-postamble:nil
+#+LANGUAGE: en
+#+HTML_HEAD: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+#+HTML_HEAD: <script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+#+HTML_HEAD: <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous"></script>
+#+HTML_HEAD: <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-scheme.min.js" integrity="sha384-/rCp5BzL+04pYmfGht9VvqwqjzXHkjdUYJem8MrTgf2MOM5lAErmsxzZiw1kr4Kr" crossorigin="anonymous"></script>
+#+HTML_HEAD: <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-haskell.min.js" integrity="sha384-sybwp8DLY2QpJ1Cwga2P6wyppZICCcuahD9IxUFS12CqhCOq2TIWUyd4BuD0MZgO" crossorigin="anonymous"></script>
+#+HTML_HEAD: <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-bash.min.js" integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15" crossorigin="anonymous"></script>
+#+HTML_HEAD: <script>document.addEventListener("DOMContentLoaded", function () {
+#+HTML_HEAD:   if (!window.Prism || !Prism.highlightElement) return;
+#+HTML_HEAD:   /* Org marks blocks as pre.src-LANG > code; Prism wants the class language-LANG on the code element. */
+#+HTML_HEAD:   document.querySelectorAll("pre.src > code").forEach(function (code) {
+#+HTML_HEAD:     var m = code.parentElement.className.match(/\bsrc-(\S+)/);
+#+HTML_HEAD:     if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
+#+HTML_HEAD:   });
+#+HTML_HEAD: });</script>
+#+HTML_HEAD: <style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
