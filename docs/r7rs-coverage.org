@@ -9,6 +9,9 @@ a note, or =no=. Every =yes= row with observable behaviour has a test
 behind it.
 
 * 2. Lexical conventions
+  :PROPERTIES:
+  :CUSTOM_ID: 2-lexical-conventions
+  :END:
 
   | Feature                          | Status | Note                                    |
   |----------------------------------+--------+-----------------------------------------|
@@ -22,6 +25,9 @@ behind it.
   | datum labels ~#0=~ and ~#0#~     | yes    | reader, =write=, =write-shared=         |
 
 * 4. Expressions
+  :PROPERTIES:
+  :CUSTOM_ID: 4-expressions
+  :END:
 
   | Form                             | Status | Note                                    |
   |----------------------------------+--------+-----------------------------------------|
@@ -49,6 +55,9 @@ behind it.
   | syntax-error                     | yes    | at expansion time                       |
 
 * 5. Program structure
+  :PROPERTIES:
+  :CUSTOM_ID: 5-program-structure
+  :END:
 
   | Feature                          | Status | Note                                    |
   |----------------------------------+--------+-----------------------------------------|
@@ -62,6 +71,9 @@ behind it.
   | library files                    | yes    | =a/b.iota= on the search path           |
 
 * 6. Standard procedures
+  :PROPERTIES:
+  :CUSTOM_ID: 6-standard-procedures
+  :END:
 
   Every procedure of every standard library is present. Startup checks
   the export lists in Iota.Library against the implementation
@@ -95,6 +107,9 @@ behind it.
   | (scheme r5rs)                    | yes    |                                         |
 
 * Deviations and extensions
+  :PROPERTIES:
+  :CUSTOM_ID: deviations-and-extensions
+  :END:
 
   1. A complex number is exact only when both parts are. Mixing an
      exact and an inexact part makes both inexact, so =1+2.0i= is

@@ -206,6 +206,27 @@ var m = code.parentElement.className.match(/\bsrc-(\S+)/);
 if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
 });
 });</script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+/* A pilcrow after each heading links to it. A click puts the link in the URL bar and on the clipboard. */
+document.querySelectorAll("h2[id], h3[id], h4[id]").forEach(function (h) {
+var page = location.pathname.split("/").pop() || "index.html";
+var a = document.createElement("a");
+a.className = "heading-link";
+a.href = "#" + h.id;
+a.title = page + "#" + h.id;
+a.textContent = "\u00b6";
+a.addEventListener("click", function (e) {
+e.preventDefault();
+history.replaceState(null, "", "#" + h.id);
+navigator.clipboard.writeText(location.href).then(function () {
+a.textContent = "\u2713";
+setTimeout(function () { a.textContent = "\u00b6" }, 1200);
+});
+});
+h.appendChild(a);
+});
+});</script>
+<style> a.heading-link{margin-left:.4em;font-size:.7em;opacity:0;text-decoration:none;vertical-align:middle;transition:opacity .15s} h2:hover a.heading-link,h3:hover a.heading-link,h4:hover a.heading-link{opacity:.6} a.heading-link:hover{opacity:1 !important} </style>
 <style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
 </head>
 <body>
@@ -241,7 +262,7 @@ is right and I need to fix this file.
 </p>
 <div id="outline-container-the-pipeline" class="outline-2">
 <h2 id="the-pipeline"><span class="section-number-2">1.</span> The pipeline</h2>
-<div class="outline-text-2" id="text-1">
+<div class="outline-text-2" id="text-the-pipeline">
 <pre class="example" id="org1f9eaff">
 Text -&gt; Reader -&gt; Datum -&gt; Expand -&gt; Core -&gt; compile -&gt; Code -&gt; run -&gt; Value -&gt; Printer -&gt; Text
 </pre>
@@ -264,7 +285,7 @@ iteration and I never noticed how slow that made it until I measured.
 </div>
 <div id="outline-container-datum-and-value-are-different-types" class="outline-2">
 <h2 id="datum-and-value-are-different-types"><span class="section-number-2">2.</span> Datum and Value are different types</h2>
-<div class="outline-text-2" id="text-2">
+<div class="outline-text-2" id="text-datum-and-value-are-different-types">
 <p>
 The tutorials use one LispVal type for both syntax and values. I split
 them. The reader stays almost pure, which makes the parser tests plain
@@ -281,7 +302,7 @@ turns <code>#n=</code> and <code>#n#</code> labels into shared or cyclic structu
 </div>
 <div id="outline-container-the-evaluator-runs-in-io-in-continuation-passing-style" class="outline-2">
 <h2 id="the-evaluator-runs-in-io-in-continuation-passing-style"><span class="section-number-2">3.</span> The evaluator runs in IO, in continuation passing style</h2>
-<div class="outline-text-2" id="text-3">
+<div class="outline-text-2" id="text-the-evaluator-runs-in-io-in-continuation-passing-style">
 <p>
 Everything runs in plain IO. Pairs, strings, vectors and variable slots
 are mutable. Errors and exits are Haskell exceptions where that is the
@@ -322,7 +343,7 @@ away.
 </div>
 <div id="outline-container-errors" class="outline-2">
 <h2 id="errors"><span class="section-number-2">4.</span> Errors</h2>
-<div class="outline-text-2" id="text-4">
+<div class="outline-text-2" id="text-errors">
 <p>
 A Haskell primitive that fails throws a SchemeError. applyK catches it
 at the call site and hands the matching condition object to the
@@ -351,7 +372,7 @@ exit unwinds every dynamic-wind first. emergency-exit does not.
 </div>
 <div id="outline-container-syntactic-environments-and-hygiene" class="outline-2">
 <h2 id="syntactic-environments-and-hygiene"><span class="section-number-2">5.</span> Syntactic environments and hygiene</h2>
-<div class="outline-text-2" id="text-5">
+<div class="outline-text-2" id="text-syntactic-environments-and-hygiene">
 <p>
 The expander resolves identifiers in a SynEnv, a chain of ribs over a
 GlobalEnv. A rib is one lexical contour, and it is mutable so a body
@@ -381,7 +402,7 @@ hygienic for the same reason.
 </div>
 <div id="outline-container-libraries" class="outline-2">
 <h2 id="libraries"><span class="section-number-2">6.</span> Libraries</h2>
-<div class="outline-text-2" id="text-6">
+<div class="outline-text-2" id="text-libraries">
 <p>
 The implementation environment holds every primitive, every core
 keyword and everything defined in lib/iota/stdlib.iota. The standard
@@ -405,7 +426,7 @@ imported binding is a syntax error.
 </div>
 <div id="outline-container-the-standard-ports" class="outline-2">
 <h2 id="the-standard-ports"><span class="section-number-2">7.</span> The standard ports</h2>
-<div class="outline-text-2" id="text-7">
+<div class="outline-text-2" id="text-the-standard-ports">
 <p>
 The three standard ports are parameter objects, so parameterize
 redirects every display and read that does not name a port. Input
@@ -417,7 +438,7 @@ makes it usable at a terminal.
 </div>
 <div id="outline-container-identity-and-constants" class="outline-2">
 <h2 id="identity-and-constants"><span class="section-number-2">8.</span> Identity and constants</h2>
-<div class="outline-text-2" id="text-8">
+<div class="outline-text-2" id="text-identity-and-constants">
 <p>
 Pairs, vectors, bytevectors, strings, records, ports, closures and
 continuations each carry an Int identity from Iota.Counter. eqv?
@@ -437,7 +458,7 @@ report and this is how it gets caught.
 </div>
 <div id="outline-container-numbers" class="outline-2">
 <h2 id="numbers"><span class="section-number-2">9.</span> Numbers</h2>
-<div class="outline-text-2" id="text-9">
+<div class="outline-text-2" id="text-numbers">
 <p>
 A Number is an exact Rational, an inexact Double, or a Complex made of
 two of those. makeRectangular is the only constructor for the complex
@@ -455,7 +476,7 @@ version.
 </div>
 <div id="outline-container-strings" class="outline-2">
 <h2 id="strings"><span class="section-number-2">10.</span> Strings</h2>
-<div class="outline-text-2" id="text-10">
+<div class="outline-text-2" id="text-strings">
 <p>
 A string is a mutable unboxed vector of characters. string-ref,
 string-set! and string-length are O(1) and string-copy! is O(n). The
@@ -466,7 +487,7 @@ O(n), but those operations were O(n) already.
 </div>
 <div id="outline-container-source-locations" class="outline-2">
 <h2 id="source-locations"><span class="section-number-2">11.</span> Source locations</h2>
-<div class="outline-text-2" id="text-11">
+<div class="outline-text-2" id="text-source-locations">
 <p>
 The reader can attach the position of each top level form. The
 interpreter records the location of the form it is running, and the
@@ -479,7 +500,7 @@ everywhere. This is good enough for now.
 </div>
 <div id="outline-container-the-error-boundary-and-the-dynamic-state" class="outline-2">
 <h2 id="the-error-boundary-and-the-dynamic-state"><span class="section-number-2">12.</span> The error boundary and the dynamic state</h2>
-<div class="outline-text-2" id="text-12">
+<div class="outline-text-2" id="text-the-error-boundary-and-the-dynamic-state">
 <p>
 When an error reaches runText the dynamic extent of the form is
 abandoned. The dynamic-wind frames it was inside are unwound, which
@@ -491,7 +512,7 @@ arrives, and emergency-exit must not unwind, so both skip this step.
 </div>
 <div id="outline-container-module-dependencies" class="outline-2">
 <h2 id="module-dependencies"><span class="section-number-2">13.</span> Module dependencies</h2>
-<div class="outline-text-2" id="text-13">
+<div class="outline-text-2" id="text-module-dependencies">
 <pre class="example" id="org12d695e">
 Types &lt;- Counter, Number &lt;- Value &lt;- Syntax &lt;- SyntaxRules
   ^                         ^

@@ -30,6 +30,7 @@ extra-doc-files:    README.org
 tested-with:        GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.2
 
 extra-source-files: lib/iota/stdlib.iota
+                    Makefile
                     docs/Makefile
                     docs/export.el
                     examples/*.iota

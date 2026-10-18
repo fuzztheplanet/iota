@@ -18,4 +18,25 @@
 #+HTML_HEAD:     if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
 #+HTML_HEAD:   });
 #+HTML_HEAD: });</script>
+#+HTML_HEAD: <script>document.addEventListener("DOMContentLoaded", function () {
+#+HTML_HEAD:   /* A pilcrow after each heading links to it. A click puts the link in the URL bar and on the clipboard. */
+#+HTML_HEAD:   document.querySelectorAll("h2[id], h3[id], h4[id]").forEach(function (h) {
+#+HTML_HEAD:     var page = location.pathname.split("/").pop() || "index.html";
+#+HTML_HEAD:     var a = document.createElement("a");
+#+HTML_HEAD:     a.className = "heading-link";
+#+HTML_HEAD:     a.href = "#" + h.id;
+#+HTML_HEAD:     a.title = page + "#" + h.id;
+#+HTML_HEAD:     a.textContent = "\u00b6";
+#+HTML_HEAD:     a.addEventListener("click", function (e) {
+#+HTML_HEAD:       e.preventDefault();
+#+HTML_HEAD:       history.replaceState(null, "", "#" + h.id);
+#+HTML_HEAD:       navigator.clipboard.writeText(location.href).then(function () {
+#+HTML_HEAD:         a.textContent = "\u2713";
+#+HTML_HEAD:         setTimeout(function () { a.textContent = "\u00b6" }, 1200);
+#+HTML_HEAD:       });
+#+HTML_HEAD:     });
+#+HTML_HEAD:     h.appendChild(a);
+#+HTML_HEAD:   });
+#+HTML_HEAD: });</script>
+#+HTML_HEAD: <style> a.heading-link{margin-left:.4em;font-size:.7em;opacity:0;text-decoration:none;vertical-align:middle;transition:opacity .15s} h2:hover a.heading-link,h3:hover a.heading-link,h4:hover a.heading-link{opacity:.6} a.heading-link:hover{opacity:1 !important} </style>
 #+HTML_HEAD: <style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>

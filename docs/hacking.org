@@ -4,6 +4,9 @@
 [[file:index.org][↑ Back to the index]]
 
 * Toolchain
+  :PROPERTIES:
+  :CUSTOM_ID: toolchain
+  :END:
 
   Any GHC from 9.4 onwards. On Arch:
 
@@ -26,10 +29,22 @@
     cabal repl
   #+end_src
 
+  The Makefile at the top wraps the same commands: make build, make
+  test, make docs for the HTML documentation and make clean. make on its
+  own does the first three. CABALFLAGS is passed on to cabal, as in
+  make build CABALFLAGS=--ghc-options=-Werror. make clean leaves the
+  checked-in HTML alone.
+
   hie.yaml is checked in, so haskell-language-server finds the project
   on its own.
 
+  Building the HTML documentation also needs Emacs. See
+  [[#documentation][Documentation]].
+
 * Where things go
+  :PROPERTIES:
+  :CUSTOM_ID: where-things-go
+  :END:
 
   | Change                                  | Where                                                                 |
   |-----------------------------------------+-----------------------------------------------------------------------|
@@ -57,6 +72,9 @@
   immediately rather than at first use.
 
 * Tests
+  :PROPERTIES:
+  :CUSTOM_ID: tests
+  :END:
 
   cabal test runs one tasty tree:
 
@@ -88,6 +106,9 @@
   Read the diff before committing.
 
 * Conventions
+  :PROPERTIES:
+  :CUSTOM_ID: conventions
+  :END:
 
   - -Wall stays clean. Build with -Werror before sending a change.
   - Language extensions go in the cabal file, not in pragmas.
@@ -100,6 +121,9 @@
     end of docs/r7rs-coverage.org, with the reason.
 
 * Sending a change
+  :PROPERTIES:
+  :CUSTOM_ID: sending-a-change
+  :END:
 
   Open a pull request against main. Keep it to one thing. A fix comes
   with a test that fails without it. If the change is user visible,
@@ -110,16 +134,44 @@
   the output you expected, and the output of iota --version.
 
 * Documentation
+  :PROPERTIES:
+  :CUSTOM_ID: documentation
+  :END:
 
-  The pages under docs/ are Org files. make -C docs html exports each
-  one to HTML next to its source with Emacs in batch mode. GitHub Pages
-  serves docs/ as it is, so the HTML is checked in. Rebuild it and commit
-  it in the same change as the .org file it comes from.
+  The pages under docs/ are Org files, exported to HTML next to their
+  source by Emacs in batch mode. Emacs is the only tool this needs on
+  top of the toolchain above. On Arch:
+
+  #+begin_src sh
+    sudo pacman -S emacs
+  #+end_src
+
+  Then, from the top of the repository:
+
+  #+begin_src sh
+    make docs            # export every page whose .org file changed
+    make -C docs ids     # give new headings a CUSTOM_ID, see below
+  #+end_src
+
+  and open docs/index.html in a browser. A change to setup.org or
+  export.el rebuilds every page. EMACS=/path/to/emacs picks another
+  Emacs than the one on the PATH.
+
+  GitHub Pages serves docs/ as it is, so the HTML is checked in. Rebuild
+  it and commit it in the same change as the .org file it comes from.
+  The HTML in the repository was exported with Emacs 31.1 and the Org
+  9.8.7 that comes with it. Another Org version may write slightly
+  different HTML, and then every page shows up as changed.
 
   docs/export.el is what the Makefile loads into Emacs. It makes the
-  export reproducible: an unchanged page gives an unchanged file, and a
-  heading's id comes from its text, so a link to a section survives a
-  rebuild. Renaming a heading changes its id.
+  export reproducible: an unchanged page gives an unchanged file.
+
+  Every heading has a CUSTOM_ID property, which becomes its id in the
+  HTML and the target of the ¶ link that shows when you hover over it.
+  The id stays put when the heading is renamed, so links to a section
+  keep working. make -C docs ids gives each new heading one, made from
+  its text. Until then the export derives the same id on the fly, but
+  it follows the heading text.
 
   docs/setup.org holds what every page shares: the export options, the
   stylesheet, and the Prism scripts that highlight source blocks in the
@@ -136,6 +188,9 @@
   #+end_src
 
 * Debugging
+  :PROPERTIES:
+  :CUSTOM_ID: debugging
+  :END:
 
   A few things that have saved me time:
 
@@ -150,6 +205,9 @@
     is the quickest way to poke at a hygiene problem.
 
 * Checking a build by hand
+  :PROPERTIES:
+  :CUSTOM_ID: checking-a-build-by-hand
+  :END:
 
   Before a release, or after anything that touches the
   build, run the same steps on the GHC versions listed under tested-with
@@ -165,6 +223,9 @@
   ghcup makes switching GHC versions painless.
 
 * Cutting a release
+  :PROPERTIES:
+  :CUSTOM_ID: cutting-a-release
+  :END:
 
   1. The checks above, on every GHC in tested-with.
   2. cabal haddock, and read it once for anything that looks wrong.

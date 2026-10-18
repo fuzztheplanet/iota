@@ -206,6 +206,27 @@ var m = code.parentElement.className.match(/\bsrc-(\S+)/);
 if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
 });
 });</script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+/* A pilcrow after each heading links to it. A click puts the link in the URL bar and on the clipboard. */
+document.querySelectorAll("h2[id], h3[id], h4[id]").forEach(function (h) {
+var page = location.pathname.split("/").pop() || "index.html";
+var a = document.createElement("a");
+a.className = "heading-link";
+a.href = "#" + h.id;
+a.title = page + "#" + h.id;
+a.textContent = "\u00b6";
+a.addEventListener("click", function (e) {
+e.preventDefault();
+history.replaceState(null, "", "#" + h.id);
+navigator.clipboard.writeText(location.href).then(function () {
+a.textContent = "\u2713";
+setTimeout(function () { a.textContent = "\u00b6" }, 1200);
+});
+});
+h.appendChild(a);
+});
+});</script>
+<style> a.heading-link{margin-left:.4em;font-size:.7em;opacity:0;text-decoration:none;vertical-align:middle;transition:opacity .15s} h2:hover a.heading-link,h3:hover a.heading-link,h4:hover a.heading-link{opacity:.6} a.heading-link:hover{opacity:1 !important} </style>
 <style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
 </head>
 <body>
@@ -232,7 +253,7 @@ if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.
 </p>
 <div id="outline-container-toolchain" class="outline-2">
 <h2 id="toolchain"><span class="section-number-2">1.</span> Toolchain</h2>
-<div class="outline-text-2" id="text-1">
+<div class="outline-text-2" id="text-toolchain">
 <p>
 Any GHC from 9.4 onwards. On Arch:
 </p>
@@ -264,14 +285,27 @@ cabal repl
 </div>
 
 <p>
+The Makefile at the top wraps the same commands: make build, make
+test, make docs for the HTML documentation and make clean. make on its
+own does the first three. CABALFLAGS is passed on to cabal, as in
+make build CABALFLAGS=&ndash;ghc-options=-Werror. make clean leaves the
+checked-in HTML alone.
+</p>
+
+<p>
 hie.yaml is checked in, so haskell-language-server finds the project
 on its own.
+</p>
+
+<p>
+Building the HTML documentation also needs Emacs. See
+<a href="#documentation">Documentation</a>.
 </p>
 </div>
 </div>
 <div id="outline-container-where-things-go" class="outline-2">
 <h2 id="where-things-go"><span class="section-number-2">2.</span> Where things go</h2>
-<div class="outline-text-2" id="text-2">
+<div class="outline-text-2" id="text-where-things-go">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
@@ -366,7 +400,7 @@ immediately rather than at first use.
 </div>
 <div id="outline-container-tests" class="outline-2">
 <h2 id="tests"><span class="section-number-2">3.</span> Tests</h2>
-<div class="outline-text-2" id="text-3">
+<div class="outline-text-2" id="text-tests">
 <p>
 cabal test runs one tasty tree:
 </p>
@@ -408,7 +442,7 @@ Read the diff before committing.
 </div>
 <div id="outline-container-conventions" class="outline-2">
 <h2 id="conventions"><span class="section-number-2">4.</span> Conventions</h2>
-<div class="outline-text-2" id="text-4">
+<div class="outline-text-2" id="text-conventions">
 <ul class="org-ul">
 <li>-Wall stays clean. Build with -Werror before sending a change.</li>
 <li>Language extensions go in the cabal file, not in pragmas.</li>
@@ -424,7 +458,7 @@ end of docs/r7rs-coverage.org, with the reason.</li>
 </div>
 <div id="outline-container-sending-a-change" class="outline-2">
 <h2 id="sending-a-change"><span class="section-number-2">5.</span> Sending a change</h2>
-<div class="outline-text-2" id="text-5">
+<div class="outline-text-2" id="text-sending-a-change">
 <p>
 Open a pull request against main. Keep it to one thing. A fix comes
 with a test that fails without it. If the change is user visible,
@@ -440,19 +474,54 @@ the output you expected, and the output of iota &ndash;version.
 </div>
 <div id="outline-container-documentation" class="outline-2">
 <h2 id="documentation"><span class="section-number-2">6.</span> Documentation</h2>
-<div class="outline-text-2" id="text-6">
+<div class="outline-text-2" id="text-documentation">
 <p>
-The pages under docs/ are Org files. make -C docs html exports each
-one to HTML next to its source with Emacs in batch mode. GitHub Pages
-serves docs/ as it is, so the HTML is checked in. Rebuild it and commit
-it in the same change as the .org file it comes from.
+The pages under docs/ are Org files, exported to HTML next to their
+source by Emacs in batch mode. Emacs is the only tool this needs on
+top of the toolchain above. On Arch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>sudo pacman -S emacs
+</code></pre>
+</div>
+
+<p>
+Then, from the top of the repository:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>make docs            # export every page whose .org file changed
+make -C docs ids     # give new headings a CUSTOM_ID, see below
+</code></pre>
+</div>
+
+<p>
+and open docs/index.html in a browser. A change to setup.org or
+export.el rebuilds every page. EMACS=/path/to/emacs picks another
+Emacs than the one on the PATH.
+</p>
+
+<p>
+GitHub Pages serves docs/ as it is, so the HTML is checked in. Rebuild
+it and commit it in the same change as the .org file it comes from.
+The HTML in the repository was exported with Emacs 31.1 and the Org
+9.8.7 that comes with it. Another Org version may write slightly
+different HTML, and then every page shows up as changed.
 </p>
 
 <p>
 docs/export.el is what the Makefile loads into Emacs. It makes the
-export reproducible: an unchanged page gives an unchanged file, and a
-heading's id comes from its text, so a link to a section survives a
-rebuild. Renaming a heading changes its id.
+export reproducible: an unchanged page gives an unchanged file.
+</p>
+
+<p>
+Every heading has a CUSTOM_ID property, which becomes its id in the
+HTML and the target of the ¶ link that shows when you hover over it.
+The id stays put when the heading is renamed, so links to a section
+keep working. make -C docs ids gives each new heading one, made from
+its text. Until then the export derives the same id on the fly, but
+it follows the heading text.
 </p>
 
 <p>
@@ -477,7 +546,7 @@ bumping a version means new hashes:
 </div>
 <div id="outline-container-debugging" class="outline-2">
 <h2 id="debugging"><span class="section-number-2">7.</span> Debugging</h2>
-<div class="outline-text-2" id="text-7">
+<div class="outline-text-2" id="text-debugging">
 <p>
 A few things that have saved me time:
 </p>
@@ -497,7 +566,7 @@ is the quickest way to poke at a hygiene problem.</li>
 </div>
 <div id="outline-container-checking-a-build-by-hand" class="outline-2">
 <h2 id="checking-a-build-by-hand"><span class="section-number-2">8.</span> Checking a build by hand</h2>
-<div class="outline-text-2" id="text-8">
+<div class="outline-text-2" id="text-checking-a-build-by-hand">
 <p>
 Before a release, or after anything that touches the
 build, run the same steps on the GHC versions listed under tested-with
@@ -519,7 +588,7 @@ ghcup makes switching GHC versions painless.
 </div>
 <div id="outline-container-cutting-a-release" class="outline-2">
 <h2 id="cutting-a-release"><span class="section-number-2">9.</span> Cutting a release</h2>
-<div class="outline-text-2" id="text-9">
+<div class="outline-text-2" id="text-cutting-a-release">
 <ol class="org-ol">
 <li>The checks above, on every GHC in tested-with.</li>
 <li>cabal haddock, and read it once for anything that looks wrong.</li>

@@ -206,6 +206,27 @@ var m = code.parentElement.className.match(/\bsrc-(\S+)/);
 if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.highlightElement(code); }
 });
 });</script>
+<script>document.addEventListener("DOMContentLoaded", function () {
+/* A pilcrow after each heading links to it. A click puts the link in the URL bar and on the clipboard. */
+document.querySelectorAll("h2[id], h3[id], h4[id]").forEach(function (h) {
+var page = location.pathname.split("/").pop() || "index.html";
+var a = document.createElement("a");
+a.className = "heading-link";
+a.href = "#" + h.id;
+a.title = page + "#" + h.id;
+a.textContent = "\u00b6";
+a.addEventListener("click", function (e) {
+e.preventDefault();
+history.replaceState(null, "", "#" + h.id);
+navigator.clipboard.writeText(location.href).then(function () {
+a.textContent = "\u2713";
+setTimeout(function () { a.textContent = "\u00b6" }, 1200);
+});
+});
+h.appendChild(a);
+});
+});</script>
+<style> a.heading-link{margin-left:.4em;font-size:.7em;opacity:0;text-decoration:none;vertical-align:middle;transition:opacity .15s} h2:hover a.heading-link,h3:hover a.heading-link,h4:hover a.heading-link{opacity:.6} a.heading-link:hover{opacity:1 !important} </style>
 <style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
 </head>
 <body>
@@ -241,7 +262,7 @@ if (m && Prism.languages[m[1]]) { code.classList.add("language-" + m[1]); Prism.
 </p>
 <div id="outline-container-introduction" class="outline-2">
 <h2 id="introduction"><span class="section-number-2">1.</span> Introduction</h2>
-<div class="outline-text-2" id="text-1">
+<div class="outline-text-2" id="text-introduction">
 <p>
 This is the user's guide. It assumes you know some Scheme and want to
 know what iota does with it. For a feature by feature comparison with
@@ -252,7 +273,7 @@ inside, see <a href="architecture.html">How iota is put together</a>.
 </div>
 <div id="outline-container-the-command-line" class="outline-2">
 <h2 id="the-command-line"><span class="section-number-2">2.</span> The command line</h2>
-<div class="outline-text-2" id="text-2">
+<div class="outline-text-2" id="text-the-command-line">
 <div class="org-src-container">
 <pre class="src src-sh"><code>iota                        # repl
 iota program.iota a b       # run a file. (command-line) =&gt; ("program.iota" "a" "b")
@@ -309,11 +330,11 @@ the standard streams.
 </div>
 <div id="outline-container-data-types" class="outline-2">
 <h2 id="data-types"><span class="section-number-2">3.</span> Data types</h2>
-<div class="outline-text-2" id="text-3">
+<div class="outline-text-2" id="text-data-types">
 </div>
 <div id="outline-container-booleans" class="outline-3">
 <h3 id="booleans"><span class="section-number-3">3.1.</span> Booleans</h3>
-<div class="outline-text-3" id="text-3-1">
+<div class="outline-text-3" id="text-booleans">
 <p>
 <code>#t</code> and <code>#f</code>, or <code>#true</code> and <code>#false</code>. Only <code>#f</code> is false. <code>0</code>, <code>"""</code>
 and <code>()</code> are all true.
@@ -322,7 +343,7 @@ and <code>()</code> are all true.
 </div>
 <div id="outline-container-numbers" class="outline-3">
 <h3 id="numbers"><span class="section-number-3">3.2.</span> Numbers</h3>
-<div class="outline-text-3" id="text-3-2">
+<div class="outline-text-3" id="text-numbers">
 <p>
 Exact integers and rationals of any size, and inexact IEEE doubles:
 </p>
@@ -368,7 +389,7 @@ that kind only take real numbers, and so do <code>abs</code>, <code>floor</code>
 </div>
 <div id="outline-container-characters-and-strings" class="outline-3">
 <h3 id="characters-and-strings"><span class="section-number-3">3.3.</span> Characters and strings</h3>
-<div class="outline-text-3" id="text-3-3">
+<div class="outline-text-3" id="text-characters-and-strings">
 <p>
 <code>#\a</code>, <code>#\space</code>, <code>#\x41</code>. Strings are mutable and take the full
 escape set, including <code>\n</code>, <code>\x41;</code> and line continuations. String
@@ -380,7 +401,7 @@ literals, like every literal constant, are immutable.
 </div>
 <div id="outline-container-symbols" class="outline-3">
 <h3 id="symbols"><span class="section-number-3">3.4.</span> Symbols</h3>
-<div class="outline-text-3" id="text-3-4">
+<div class="outline-text-3" id="text-symbols">
 <p>
 Case sensitive. <code>|two words|</code> is a symbol with a space in it.
 </p>
@@ -388,7 +409,7 @@ Case sensitive. <code>|two words|</code> is a symbol with a space in it.
 </div>
 <div id="outline-container-pairs-and-lists" class="outline-3">
 <h3 id="pairs-and-lists"><span class="section-number-3">3.5.</span> Pairs and lists</h3>
-<div class="outline-text-3" id="text-3-5">
+<div class="outline-text-3" id="text-pairs-and-lists">
 <p>
 Mutable. A <code>set-car!</code> or <code>set-cdr!</code> is visible through every
 reference to the pair.
@@ -397,7 +418,7 @@ reference to the pair.
 </div>
 <div id="outline-container-vectors-and-bytevectors" class="outline-3">
 <h3 id="vectors-and-bytevectors"><span class="section-number-3">3.6.</span> Vectors and bytevectors</h3>
-<div class="outline-text-3" id="text-3-6">
+<div class="outline-text-3" id="text-vectors-and-bytevectors">
 <p>
 <code>#(1 2 3)</code> and <code>#u8(0 255)</code> literals, the full set of accessors,
 <code>utf8-&gt;string</code> and <code>string-&gt;utf8</code>.
@@ -406,7 +427,7 @@ reference to the pair.
 </div>
 <div id="outline-container-records" class="outline-3">
 <h3 id="records"><span class="section-number-3">3.7.</span> Records</h3>
-<div class="outline-text-3" id="text-3-7">
+<div class="outline-text-3" id="text-records">
 <div class="org-src-container">
 <pre class="src src-scheme"><code>(define-record-type point
   (make-point x y)
@@ -420,7 +441,7 @@ reference to the pair.
 </div>
 <div id="outline-container-control" class="outline-2">
 <h2 id="control"><span class="section-number-2">4.</span> Control</h2>
-<div class="outline-text-2" id="text-4">
+<div class="outline-text-2" id="text-control">
 <p>
 Proper tail calls. <code>(define (loop n) (if (= n 0) 'done (loop (- n 1))))</code>
 runs in constant space for any <code>n</code>.
@@ -508,7 +529,7 @@ and that is how the stdlib defines <code>with-output-to-file</code>.
 </div>
 <div id="outline-container-macros" class="outline-2">
 <h2 id="macros"><span class="section-number-2">5.</span> Macros</h2>
-<div class="outline-text-2" id="text-5">
+<div class="outline-text-2" id="text-macros">
 <p>
 <code>syntax-rules</code>:
 </p>
@@ -533,7 +554,7 @@ such as <code>else</code> and <code>=&gt;</code> are matched by binding, so a lo
 </div>
 <div id="outline-container-libraries" class="outline-2">
 <h2 id="libraries"><span class="section-number-2">6.</span> Libraries</h2>
-<div class="outline-text-2" id="text-6">
+<div class="outline-text-2" id="text-libraries">
 <p>
 A program may start with <code>import</code> declarations, and the repl takes
 them at any point. The repl and scripts begin with every standard
@@ -567,7 +588,7 @@ bindings and nothing else.
 </div>
 <div id="outline-container-the-repl" class="outline-2">
 <h2 id="the-repl"><span class="section-number-2">7.</span> The repl</h2>
-<div class="outline-text-2" id="text-7">
+<div class="outline-text-2" id="text-the-repl">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
@@ -619,7 +640,7 @@ line.
 </div>
 <div id="outline-container-the-standard-library" class="outline-2">
 <h2 id="the-standard-library"><span class="section-number-2">8.</span> The standard library</h2>
-<div class="outline-text-2" id="text-8">
+<div class="outline-text-2" id="text-the-standard-library">
 <p>
 Compiled into the binary from <code>lib/iota/stdlib.iota</code> and loaded at
 startup. The non-standard extras are in <code>(iota extras)</code>, which the

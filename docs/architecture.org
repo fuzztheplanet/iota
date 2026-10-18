@@ -7,6 +7,9 @@ These are notes to myself. Where they disagree with the code, the code
 is right and I need to fix this file.
 
 * The pipeline
+  :PROPERTIES:
+  :CUSTOM_ID: the-pipeline
+  :END:
 
   #+begin_example
     Text -> Reader -> Datum -> Expand -> Core -> compile -> Code -> run -> Value -> Printer -> Text
@@ -24,6 +27,9 @@ is right and I need to fix this file.
   iteration and I never noticed how slow that made it until I measured.
 
 * Datum and Value are different types
+  :PROPERTIES:
+  :CUSTOM_ID: datum-and-value-are-different-types
+  :END:
 
   The tutorials use one LispVal type for both syntax and values. I split
   them. The reader stays almost pure, which makes the parser tests plain
@@ -35,6 +41,9 @@ is right and I need to fix this file.
   turns ~#n=~ and ~#n#~ labels into shared or cyclic structure.
 
 * The evaluator runs in IO, in continuation passing style
+  :PROPERTIES:
+  :CUSTOM_ID: the-evaluator-runs-in-io-in-continuation-passing-style
+  :END:
 
   Everything runs in plain IO. Pairs, strings, vectors and variable slots
   are mutable. Errors and exits are Haskell exceptions where that is the
@@ -65,6 +74,9 @@ is right and I need to fix this file.
   away.
 
 * Errors
+  :PROPERTIES:
+  :CUSTOM_ID: errors
+  :END:
 
   A Haskell primitive that fails throws a SchemeError. applyK catches it
   at the call site and hands the matching condition object to the
@@ -86,6 +98,9 @@ is right and I need to fix this file.
   exit unwinds every dynamic-wind first. emergency-exit does not.
 
 * Syntactic environments and hygiene
+  :PROPERTIES:
+  :CUSTOM_ID: syntactic-environments-and-hygiene
+  :END:
 
   The expander resolves identifiers in a SynEnv, a chain of ribs over a
   GlobalEnv. A rib is one lexical contour, and it is mutable so a body
@@ -108,6 +123,9 @@ is right and I need to fix this file.
   hygienic for the same reason.
 
 * Libraries
+  :PROPERTIES:
+  :CUSTOM_ID: libraries
+  :END:
 
   The implementation environment holds every primitive, every core
   keyword and everything defined in lib/iota/stdlib.iota. The standard
@@ -126,6 +144,9 @@ is right and I need to fix this file.
   imported binding is a syntax error.
 
 * The standard ports
+  :PROPERTIES:
+  :CUSTOM_ID: the-standard-ports
+  :END:
 
   The three standard ports are parameter objects, so parameterize
   redirects every display and read that does not name a port. Input
@@ -134,6 +155,9 @@ is right and I need to fix this file.
   makes it usable at a terminal.
 
 * Identity and constants
+  :PROPERTIES:
+  :CUSTOM_ID: identity-and-constants
+  :END:
 
   Pairs, vectors, bytevectors, strings, records, ports, closures and
   continuations each carry an Int identity from Iota.Counter. eqv?
@@ -148,6 +172,9 @@ is right and I need to fix this file.
   report and this is how it gets caught.
 
 * Numbers
+  :PROPERTIES:
+  :CUSTOM_ID: numbers
+  :END:
 
   A Number is an exact Rational, an inexact Double, or a Complex made of
   two of those. makeRectangular is the only constructor for the complex
@@ -162,6 +189,9 @@ is right and I need to fix this file.
   version.
 
 * Strings
+  :PROPERTIES:
+  :CUSTOM_ID: strings
+  :END:
 
   A string is a mutable unboxed vector of characters. string-ref,
   string-set! and string-length are O(1) and string-copy! is O(n). The
@@ -169,6 +199,9 @@ is right and I need to fix this file.
   O(n), but those operations were O(n) already.
 
 * Source locations
+  :PROPERTIES:
+  :CUSTOM_ID: source-locations
+  :END:
 
   The reader can attach the position of each top level form. The
   interpreter records the location of the form it is running, and the
@@ -178,6 +211,9 @@ is right and I need to fix this file.
   everywhere. This is good enough for now.
 
 * The error boundary and the dynamic state
+  :PROPERTIES:
+  :CUSTOM_ID: the-error-boundary-and-the-dynamic-state
+  :END:
 
   When an error reaches runText the dynamic extent of the form is
   abandoned. The dynamic-wind frames it was inside are unwound, which
@@ -186,6 +222,9 @@ is right and I need to fix this file.
   arrives, and emergency-exit must not unwind, so both skip this step.
 
 * Module dependencies
+  :PROPERTIES:
+  :CUSTOM_ID: module-dependencies
+  :END:
 
   #+begin_example
     Types <- Counter, Number <- Value <- Syntax <- SyntaxRules

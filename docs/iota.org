@@ -4,6 +4,9 @@
 [[file:index.org][↑ Back to the index]]
 
 * Introduction
+  :PROPERTIES:
+  :CUSTOM_ID: introduction
+  :END:
 
   This is the user's guide. It assumes you know some Scheme and want to
   know what iota does with it. For a feature by feature comparison with
@@ -11,6 +14,9 @@
   inside, see [[file:architecture.org][How iota is put together]].
 
 * The command line
+  :PROPERTIES:
+  :CUSTOM_ID: the-command-line
+  :END:
 
   #+begin_src sh
     iota                        # repl
@@ -53,12 +59,21 @@
   the standard streams.
 
 * Data types
+  :PROPERTIES:
+  :CUSTOM_ID: data-types
+  :END:
 
 ** Booleans
+   :PROPERTIES:
+   :CUSTOM_ID: booleans
+   :END:
    =#t= and =#f=, or =#true= and =#false=. Only =#f= is false. =0=, ="""=
    and =()= are all true.
 
 ** Numbers
+   :PROPERTIES:
+   :CUSTOM_ID: numbers
+   :END:
    Exact integers and rationals of any size, and inexact IEEE doubles:
 
    #+begin_example
@@ -94,6 +109,9 @@
    =positive?=.
 
 ** Characters and strings
+   :PROPERTIES:
+   :CUSTOM_ID: characters-and-strings
+   :END:
    =#\a=, =#\space=, =#\x41=. Strings are mutable and take the full
    escape set, including =\n=, =\x41;= and line continuations. String
    literals, like every literal constant, are immutable.
@@ -101,17 +119,29 @@
    =(string-set! (string-copy "abc") 0 #\z)= is fine.
 
 ** Symbols
+   :PROPERTIES:
+   :CUSTOM_ID: symbols
+   :END:
    Case sensitive. =|two words|= is a symbol with a space in it.
 
 ** Pairs and lists
+   :PROPERTIES:
+   :CUSTOM_ID: pairs-and-lists
+   :END:
    Mutable. A =set-car!= or =set-cdr!= is visible through every
    reference to the pair.
 
 ** Vectors and bytevectors
+   :PROPERTIES:
+   :CUSTOM_ID: vectors-and-bytevectors
+   :END:
    =#(1 2 3)= and =#u8(0 255)= literals, the full set of accessors,
    =utf8->string= and =string->utf8=.
 
 ** Records
+   :PROPERTIES:
+   :CUSTOM_ID: records
+   :END:
    #+begin_src scheme
      (define-record-type point
        (make-point x y)
@@ -121,6 +151,9 @@
    #+end_src
 
 * Control
+  :PROPERTIES:
+  :CUSTOM_ID: control
+  :END:
 
   Proper tail calls. ~(define (loop n) (if (= n 0) 'done (loop (- n 1))))~
   runs in constant space for any =n=.
@@ -186,6 +219,9 @@
   #+end_src
 
 * Macros
+  :PROPERTIES:
+  :CUSTOM_ID: macros
+  :END:
 
   =syntax-rules=:
 
@@ -204,6 +240,9 @@
   =else= is only a variable.
 
 * Libraries
+  :PROPERTIES:
+  :CUSTOM_ID: libraries
+  :END:
 
   A program may start with =import= declarations, and the repl takes
   them at any point. The repl and scripts begin with every standard
@@ -231,6 +270,9 @@
   bindings and nothing else.
 
 * The repl
+  :PROPERTIES:
+  :CUSTOM_ID: the-repl
+  :END:
 
   | Command         | Effect                              |
   |-----------------+-------------------------------------|
@@ -245,6 +287,9 @@
   line.
 
 * The standard library
+  :PROPERTIES:
+  :CUSTOM_ID: the-standard-library
+  :END:
 
   Compiled into the binary from =lib/iota/stdlib.iota= and loaded at
   startup. The non-standard extras are in =(iota extras)=, which the
