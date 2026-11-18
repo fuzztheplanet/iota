@@ -1,6 +1,11 @@
 -- | Constructors and accessors for the objects declared in
 -- "Iota.Types". Nearly everything runs in IO because the objects are
--- mutable. Even cons allocates two IORefs and an id.
+-- mutable. Even 'cons' allocates two IORefs and an id.
+--
+-- An accessor that is handed the wrong kind of object throws a
+-- 'TypeError' naming what it wanted. The @want@ functions at the end
+-- are that check on its own, for the primitives to unpack arguments
+-- with.
 module Iota.Value
   ( -- * Booleans
     isTruthy
@@ -101,19 +106,25 @@ isTruthy :: Value -> Bool
 isTruthy (Boolean False) = False
 isTruthy _ = True
 
+-- | A Scheme boolean.
 boolean :: Bool -> Value
 boolean = Boolean
 
 -- Numbers
 
+-- | A Scheme number. Numbers are immutable and have no identity.
 number :: Number -> Value
 number = Num
 
+-- | An exact integer.
 integer :: Integer -> Value
 integer = Num . N.fromInteger'
 
 -- Strings
 
+-- | A fresh mutable string with the given contents. Every call
+-- allocates, so two strings made from the same text are @equal?@ but
+-- not @eqv?@.
 makeString :: Text -> Eval Value
 makeString t = do
   i <- freshId
@@ -132,6 +143,9 @@ charsFromText t = do
   mapM_ (uncurry (UMV.write v)) (zip [0 ..] (T.unpack t))
   pure v
 
+-- | The character vector inside a string. It is the string's own
+-- storage, not a copy, so a write through it skips the 'requireMutable'
+-- check. A 'TypeError' for anything that is not a string.
 stringChars :: Value -> Eval (UMV.IOVector Char)
 stringChars (Str _ v) = pure v
 stringChars v = throwScheme (TypeError "a string" v)
@@ -143,27 +157,42 @@ stringText v = do
   cs <- stringChars v
   T.pack <$> mapM (UMV.read cs) [0 .. UMV.length cs - 1]
 
+-- | @string-length@, in characters. O(1).
 stringLength :: Value -> Eval Int
 stringLength v = UMV.length <$> stringChars v
 
+-- | @string-ref@. The first argument names the calling procedure for
+-- the 'IndexOutOfRange' error. Only the upper bound is checked. The
+-- callers get the index from 'wantIndex', which rules out a negative
+-- one.
 stringRefAt :: Text -> Value -> Int -> Eval Char
 stringRefAt who v k = do
   cs <- stringChars v
   if k < UMV.length cs then UMV.read cs k else throwScheme (IndexOutOfRange who k)
 
+-- | @string-set!@. A literal constant is refused before the index is
+-- looked at. Otherwise as 'stringRefAt'.
 stringSetAt :: Text -> Value -> Int -> Char -> Eval ()
 stringSetAt who v k c = do
   requireMutable who v
   cs <- stringChars v
   if k < UMV.length cs then UMV.write cs k c else throwScheme (IndexOutOfRange who k)
 
+-- | @string-fill!@ over the half-open range from start to end. The
+-- range is not checked here. The primitive validates it against the
+-- length first. A literal constant is refused.
 stringFill :: Value -> Char -> Int -> Int -> Eval ()
 stringFill v c start end = do
   requireMutable "string-fill!" v
   cs <- stringChars v
   mapM_ (\k -> UMV.write cs k c) [start .. end - 1]
 
--- | string-copy!. The source chunk is read first, so overlapping ranges are fine.
+-- | @string-copy!@: destination, index in the destination, source,
+-- then the start and end of the source range. The source chunk is read
+-- first, so overlapping ranges are fine. Throws 'IndexOutOfRange' when
+-- the chunk does not fit in the destination. The source range itself is
+-- validated by the primitive, not here. A literal destination is
+-- refused.
 stringCopyInto :: Value -> Int -> Value -> Int -> Int -> Eval ()
 stringCopyInto to at from start end = do
   requireMutable "string-copy!" to
@@ -178,29 +207,39 @@ stringCopyInto to at from start end = do
 
 -- Pairs and lists
 
+-- | A fresh mutable pair, with a new identity.
 cons :: Value -> Value -> Eval Value
 cons a b = do
   i <- freshId
   Pair i <$> newIORef a <*> newIORef b
 
+-- | The current contents of the car field. A 'TypeError' for anything
+-- that is not a pair, the empty list included.
 car :: Value -> Eval Value
 car (Pair _ a _) = readIORef a
 car v = throwScheme (TypeError "a pair" v)
 
+-- | The current contents of the cdr field. Fails like 'car'.
 cdr :: Value -> Eval Value
 cdr (Pair _ _ d) = readIORef d
 cdr v = throwScheme (TypeError "a pair" v)
 
+-- | @set-car!@. A pair that came from a literal is refused through
+-- 'requireMutable'.
 setCar :: Value -> Value -> Eval ()
 setCar p@(Pair _ a _) v = requireMutable "set-car!" p >> writeIORef a v
 setCar v _ = throwScheme (TypeError "a pair" v)
 
+-- | @set-cdr!@. Fails like 'setCar'.
 setCdr :: Value -> Value -> Eval ()
 setCdr p@(Pair _ _ d) v = requireMutable "set-cdr!" p >> writeIORef d v
 setCdr v _ = throwScheme (TypeError "a pair" v)
 
 -- | Altering a constant is an error in R7RS. This is where that is
--- enforced.
+-- enforced. The first argument names the mutator for the message. A
+-- pair, string, vector or bytevector with a literal id (see
+-- 'isMutableId') throws a 'TypeError'. Every other value passes,
+-- whatever its type, so the caller still has to check that.
 requireMutable :: Text -> Value -> Eval ()
 requireMutable who v = case v of
   Pair i _ _ | not (isMutableId i) -> constant
@@ -209,8 +248,10 @@ requireMutable who v = case v of
   Str i _ | not (isMutableId i) -> constant
   _ -> pure ()
   where
-    constant = throwScheme (TypeError (who <> " expects a mutable object, not a literal constant") v)
+    constant = throwScheme (TypeError ("a mutable object in " <> who <> ", not a literal constant") v)
 
+-- | A fresh proper list. Every pair in it is newly allocated and
+-- mutable.
 list :: [Value] -> Eval Value
 list xs = listWithTail xs Null
 
@@ -243,12 +284,13 @@ properList v0 = go [] v0 v0
     step (Pair _ _ d) = Just <$> readIORef d
     step _ = pure Nothing
 
--- | properList, but with an error instead of Nothing.
+-- | 'properList', but with a 'TypeError' instead of Nothing. The first
+-- argument names the calling procedure for the message.
 requireList :: Text -> Value -> Eval [Value]
 requireList who v =
   properList v >>= \case
     Just xs -> pure xs
-    Nothing -> throwScheme (TypeError (who <> " expects a proper list") v)
+    Nothing -> throwScheme (TypeError ("a proper list in " <> who) v)
 
 -- | Elements and tail. @(a b . c)@ gives @([a, b], c)@ and a proper
 -- list gives a Null tail. Circular input is an error, not a hang.
@@ -272,14 +314,19 @@ improperList v0 = go [] v0 v0
     step (Pair _ _ d) = Just <$> readIORef d
     step _ = pure Nothing
 
+-- | The length of a proper list. Nothing for an improper or circular
+-- one, so @length@ can report an error instead of looping.
 listLength :: Value -> Eval (Maybe Int)
 listLength v = fmap length <$> properList v
 
+-- | @list?@. False for an improper list and for a circular one.
 isList :: Value -> Eval Bool
 isList v = maybe False (const True) <$> properList v
 
 -- Vectors
 
+-- | A fresh vector of the given length with every slot holding the
+-- fill value. A negative length throws 'IndexOutOfRange'.
 makeVector :: Int -> Value -> Eval Value
 makeVector n fill
   | n < 0 = throwScheme (IndexOutOfRange "make-vector" n)
@@ -287,6 +334,7 @@ makeVector n fill
       i <- freshId
       Vec i <$> MV.replicate n fill
 
+-- | A fresh mutable vector holding the given elements in order.
 vectorFromList :: [Value] -> Eval Value
 vectorFromList xs = do
   v <- MV.new (length xs)
@@ -294,12 +342,15 @@ vectorFromList xs = do
   i <- freshId
   pure (Vec i v)
 
+-- | The elements of a vector as they are now. A 'TypeError' for
+-- anything that is not a vector.
 vectorToList :: Value -> Eval [Value]
 vectorToList (Vec _ v) = mapM (MV.read v) [0 .. MV.length v - 1]
 vectorToList v = throwScheme (TypeError "a vector" v)
 
 -- Bytevectors
 
+-- | A fresh mutable bytevector holding the given bytes in order.
 bytevectorFromList :: [Word8] -> Eval Value
 bytevectorFromList ws = do
   v <- UMV.new (length ws)
@@ -307,18 +358,34 @@ bytevectorFromList ws = do
   i <- freshId
   pure (Bytes i v)
 
+-- | The bytes of a bytevector as they are now. A 'TypeError' for
+-- anything that is not a bytevector.
 bytevectorToList :: Value -> Eval [Word8]
 bytevectorToList (Bytes _ v) = mapM (UMV.read v) [0 .. UMV.length v - 1]
 bytevectorToList v = throwScheme (TypeError "a bytevector" v)
 
 -- Procedures
 
+-- | Wrap a Haskell function as a Scheme procedure. The name is what
+-- arity errors report and what @write@ shows inside @#\<procedure ...>@.
+-- 'Iota.Eval.applyK' checks the argument count against the arity before
+-- the function runs, so the function only ever sees an argument list
+-- of a permitted length. It may throw a 'SchemeError', which @applyK@
+-- turns into a Scheme condition.
 primitive :: Text -> Arity -> ([Value] -> Eval Value) -> Value
 primitive name arity fn = Proc (Primitive name arity fn)
 
+-- | The same for a function that takes the continuation of the call,
+-- which it must use to return. For procedures that call back into
+-- Scheme or change the dynamic state. See 'PrimitiveK' for what such a
+-- function may and may not do.
 primitiveK :: Text -> Arity -> ([Value] -> K -> Eval Value) -> Value
 primitiveK name arity fn = Proc (PrimitiveK name arity fn)
 
+-- | The name a procedure carries. A primitive has the name it was
+-- registered under and a closure the name it was defined with, or
+-- @lambda@ if it never got one. Continuations and parameter objects
+-- have the fixed names @continuation@ and @parameter@.
 procedureName :: Procedure -> Text
 procedureName = \case
   Primitive {..} -> primName
@@ -334,14 +401,16 @@ valuesToList :: Value -> [Value]
 valuesToList (MultipleValues vs) = vs
 valuesToList v = [v]
 
--- | The inverse of valuesToList. A single value stays bare.
+-- | The inverse of 'valuesToList'. A single value stays bare.
 listToValues :: [Value] -> Value
 listToValues [v] = v
 listToValues vs = MultipleValues vs
 
 -- Equivalence
 
--- | eqv?. Numbers and characters by value, everything else by identity.
+-- | @eqv?@. Numbers and characters by value, everything else by
+-- identity. Exactness counts, and @0.0@ and @-0.0@ are different. Two
+-- primitives are the same when they have the same name.
 eqv :: Value -> Value -> Eval Bool
 eqv a b = pure (eqvPure a b)
 
@@ -380,11 +449,11 @@ sameProcedure x y = case (x, y) of
   (PrimitiveK {primName = n1}, PrimitiveK {primName = n2}) -> n1 == n2
   _ -> False
 
--- | eq? is allowed to be the same as eqv?, and here it is.
+-- | @eq?@ is allowed to be the same as @eqv?@, and here it is.
 eqp :: Value -> Value -> Eval Bool
 eqp = eqv
 
--- | equal?, and it terminates on cyclic data.
+-- | @equal?@, and it terminates on cyclic data.
 --
 -- The cheap path is a plain recursive walk with a step budget. When
 -- the budget runs out, on huge data or on a cycle, it starts over with
@@ -525,8 +594,9 @@ data UF = Root !Int | Link (IORef UF)
 datumToValue :: Datum -> Eval Value
 datumToValue = datumToValueWith False
 
--- | The same for a literal in program text. Everything it builds is
--- marked constant.
+-- | The same for a literal in program text. Every pair, string, vector
+-- and bytevector it builds is marked constant, so the mutators refuse
+-- it. See 'requireMutable'.
 literalToValue :: Datum -> Eval Value
 literalToValue = datumToValueWith True
 
@@ -614,15 +684,21 @@ patchPlaceholders labels ph v =
     tshow = T.pack . show
 
 
--- | The symbol underneath any renaming.
+-- | The symbol underneath any renaming. A datum that is not an
+-- identifier gives the symbol @?@, so check with 'Iota.Syntax.isIdent'
+-- first where that matters.
 identBase :: Datum -> Symbol
 identBase = \case
   DSymbol s -> s
   DAlias a -> identBase (aliasIdent a)
   _ -> Symbol "?"
 
--- | The other direction, for eval. Procedures and ports have no
--- source form and are rejected. So is cyclic data.
+-- | The other direction, for @eval@. Procedures, ports and the other
+-- objects with no source form are rejected with a 'TypeError'. So is a
+-- list that is circular through its cdrs. A cycle through a car or
+-- through a vector is not detected, and the conversion recurses until
+-- the stack runs out. Shared structure is not preserved. Each
+-- occurrence is copied.
 valueToDatum :: Value -> Eval Datum
 valueToDatum = \case
   Null -> pure (DList [] Nothing)
@@ -643,10 +719,12 @@ valueToDatum = \case
 
 -- Argument checking helpers
 
+-- | The symbol, or a 'TypeError'.
 wantSymbol :: Value -> Eval Symbol
 wantSymbol (Sym s) = pure s
 wantSymbol v = throwScheme (TypeError "a symbol" v)
 
+-- | Any number, complex included, or a 'TypeError'.
 wantNumber :: Value -> Eval Number
 wantNumber (Num n) = pure n
 wantNumber v = throwScheme (TypeError "a number" v)
@@ -657,6 +735,8 @@ wantReal v = do
   n <- wantNumber v
   if N.isReal n then pure n else throwScheme (TypeError "a real number" v)
 
+-- | An integer, exact or inexact, so @3.0@ is accepted and comes back
+-- as 3. Use 'wantIndex' where exactness matters.
 wantInteger :: Value -> Eval Integer
 wantInteger v = do
   n <- wantNumber v
@@ -672,28 +752,40 @@ wantIndex v = do
     Exact r | Just i <- N.toIntegerMaybe (Exact r), i >= 0, i <= fromIntegral (maxBound :: Int) -> pure (fromInteger i)
     _ -> throwScheme (TypeError "an exact non-negative integer" v)
 
+-- | The character, or a 'TypeError'.
 wantChar :: Value -> Eval Char
 wantChar (Character c) = pure c
 wantChar v = throwScheme (TypeError "a character" v)
 
+-- | The contents of a string, copied out. This is 'stringText', so it
+-- costs O(n).
 wantString :: Value -> Eval Text
 wantString = stringText
 
+-- | The car and cdr cells of a pair. Writing through them skips the
+-- 'requireMutable' check.
 wantPair :: Value -> Eval (IORef Value, IORef Value)
 wantPair (Pair _ a d) = pure (a, d)
 wantPair v = throwScheme (TypeError "a pair" v)
 
+-- | The storage of a vector, not a copy. Writing through it skips the
+-- 'requireMutable' check.
 wantVector :: Value -> Eval (MV.IOVector Value)
 wantVector (Vec _ v) = pure v
 wantVector v = throwScheme (TypeError "a vector" v)
 
+-- | Anything that can be applied: a primitive, a closure, a
+-- continuation or a parameter object.
 wantProcedure :: Value -> Eval Procedure
 wantProcedure (Proc p) = pure p
 wantProcedure v = throwScheme (TypeError "a procedure" v)
 
+-- | The port, open or closed, or a 'TypeError'.
 wantPort :: Value -> Eval Port
 wantPort (PortVal p) = pure p
 wantPort v = throwScheme (TypeError "a port" v)
 
+-- | The elements of a proper list. 'requireList' with a generic name
+-- in the message.
 wantList :: Value -> Eval [Value]
 wantList = requireList "procedure"

@@ -1,0 +1,56 @@
+;; Lazy streams with delay, delay-force and force. A stream is a pair
+;; whose tail is a promise, so only the part that is used is computed.
+
+(import (scheme base) (scheme lazy) (scheme write))
+
+(define-syntax stream-cons
+  (syntax-rules ()
+    ((_ head tail) (cons head (delay tail)))))
+
+(define (stream-car s) (car s))
+(define (stream-cdr s) (force (cdr s)))
+
+;; The integers from n. The recursive call sits inside the promise, so
+;; this returns at once.
+(define (integers-from n)
+  (stream-cons n (integers-from (+ n 1))))
+
+(define (stream-map f s)
+  (stream-cons (f (stream-car s)) (stream-map f (stream-cdr s))))
+
+(define (stream-filter keep? s)
+  (if (keep? (stream-car s))
+      (stream-cons (stream-car s) (stream-filter keep? (stream-cdr s)))
+      (stream-filter keep? (stream-cdr s))))
+
+(define (stream-take s n)
+  (if (= n 0)
+      '()
+      (cons (stream-car s) (stream-take (stream-cdr s) (- n 1)))))
+
+(define naturals (integers-from 0))
+
+(write (stream-take naturals 10))
+(newline)
+(write (stream-take (stream-map (lambda (n) (* n n)) naturals) 10))
+(newline)
+(write (stream-take (stream-filter odd? naturals) 10))
+(newline)
+
+;; A promise runs its body once and remembers the value.
+(define runs 0)
+(define p (delay (begin (set! runs (+ runs 1)) (* 6 7))))
+
+(write (list (force p) (force p) runs))
+(newline)
+
+;; delay-force is for a promise whose value is another promise. A long
+;; chain of them is forced in a loop, without growing the stack.
+(define (count-down n)
+  (delay-force
+   (if (= n 0)
+       (delay 'liftoff)
+       (count-down (- n 1)))))
+
+(write (force (count-down 10000)))
+(newline)

@@ -104,7 +104,8 @@ tests =
         ]
     , evalCases
         "tail calls"
-        [ -- would blow the stack without proper tail calls
+        [ -- long loops. They do not show that the calls are tail calls:
+          -- recursion that is not in tail position gets this deep as well
           ("(define (loop n) (if (= n 0) 'done (loop (- n 1)))) (loop 1000000)", "done")
         , ("(let loop ((n 100000) (acc 0)) (if (= n 0) acc (loop (- n 1) (+ acc 1))))", "100000")
         ]
@@ -161,11 +162,11 @@ tests =
         , ("(string=? \"a\" \"a\" \"a\")", "#t")
         , ("(define s (make-string 5 #\\.)) (string-copy! s 1 \"ab\") s", "\".ab..\"")
         , -- literal constants are immutable (R7RS 3.4)
-          ("(set-car! '(1 2) 9)", "expected set-car! expects a mutable object, not a literal constant, got: (1 2)")
-        , ("(string-set! \"abc\" 0 #\\z)", "expected string-set! expects a mutable object, not a literal constant, got: \"abc\"")
-        , ("(vector-set! #(1 2) 0 9)", "expected vector-set! expects a mutable object, not a literal constant, got: #(1 2)")
+          ("(set-car! '(1 2) 9)", "expected a mutable object in set-car!, not a literal constant, got: (1 2)")
+        , ("(string-set! \"abc\" 0 #\\z)", "expected a mutable object in string-set!, not a literal constant, got: \"abc\"")
+        , ("(vector-set! #(1 2) 0 9)", "expected a mutable object in vector-set!, not a literal constant, got: #(1 2)")
         , ("(let ((s (string-copy \"abc\"))) (string-set! s 0 #\\z) s)", "\"zbc\"")
-        , ("(string-set! (symbol->string 'abc) 0 #\\z)", "expected string-set! expects a mutable object, not a literal constant, got: \"abc\"")
+        , ("(string-set! (symbol->string 'abc) 0 #\\z)", "expected a mutable object in string-set!, not a literal constant, got: \"abc\"")
         , ("(eqv? (bytevector) (bytevector))", "#f")
         , -- a definition after an expression in a body is an error
           ("(let () (define a 1) (display a) (define b 2) b)", "bad syntax in body (definition after an expression): (define b 2)")

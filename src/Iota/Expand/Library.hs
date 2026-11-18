@@ -1,7 +1,7 @@
--- | import, define-library and cond-expand. This lives inside the
+-- | @import@, @define-library@ and @cond-expand@. This lives inside the
 -- expander because a library body has to run while the program that
--- imports it is still being expanded. The body goes through the Runner
--- carried in the context.
+-- imports it is still being expanded. The body goes through the
+-- 'Runner' carried in the context.
 module Iota.Expand.Library
   ( importInto
   , environmentFrom
@@ -128,6 +128,11 @@ condExpand ex env (clause : rest) = case clause of
     if ok then pure body else condExpand ex env rest
   _ -> syntaxError "cond-expand clause" clause
 
+-- | Does a @cond-expand@ feature requirement hold? An identifier is
+-- looked up in 'featureSymbols'. @and@, @or@ and @not@ combine
+-- requirements. @(library name)@ holds when the library can be found,
+-- and finding it loads it. Any other shape throws 'BadSyntax'. An
+-- @else@ clause never gets here. 'condExpand' handles it.
 featureRequirement :: Ex -> SynEnv -> Datum -> IO Bool
 featureRequirement ex env req = case req of
   _ | isIdent req -> pure (identBase req `elem` featureSymbols)

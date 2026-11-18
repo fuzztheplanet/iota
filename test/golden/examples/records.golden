@@ -1,0 +1,10 @@
+p is #<point 3 4>
+x = 3, y = 4
+after set-point-x!: #<point 10 4>
+(point? p) = #t
+(point? 5) = #f
+(vector? p) = #f
+error: expected a point (not-a-point)
+(equal? p q) = #f
+(point=? p q) = #t
+distance = 5

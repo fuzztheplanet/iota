@@ -1,9 +1,12 @@
 -- | Arithmetic on 'Number'. A few rules hold everywhere in this file. An
 -- inexact argument makes the result inexact. Exact arithmetic runs over
--- Rational and never rounds. A complex number whose imaginary part is an
--- exact zero is a real number, and the constructors below keep it that
--- way, so the rest of the file can pattern match on Exact and Inexact
--- without worrying about a complex number in disguise.
+-- 'Rational' and never rounds. A complex number whose imaginary part is
+-- an exact zero is a real number, and the constructors below keep it
+-- that way, so the rest of the file can pattern match on 'Exact' and
+-- 'Inexact' without worrying about a complex number in disguise.
+--
+-- The functions that can fail run in 'Eval' and throw a 'SchemeError'.
+-- The others are pure.
 module Iota.Number
   ( -- * Construction
     fromInt
@@ -85,12 +88,15 @@ import Numeric (floatToDigits, showHex, showInt, showIntAtBase, showOct)
 
 -- Construction and basic queries
 
+-- | An exact integer from a machine 'Int'.
 fromInt :: Int -> Number
 fromInt = Exact . fromIntegral
 
+-- | An exact integer of any size.
 fromInteger' :: Integer -> Number
 fromInteger' = Exact . fromInteger
 
+-- | An inexact real. Infinities and NaN go in unchanged.
 fromDouble :: Double -> Number
 fromDouble = Inexact
 
@@ -104,6 +110,10 @@ makeRectangular re im
   | isInexact re || isInexact im = Complex (toInexact re) (toInexact im)
   | otherwise = Complex re im
 
+-- | @make-polar@, magnitude first. An exact zero angle gives the
+-- magnitude back as it is, so @(make-polar 2 0)@ is the exact 2. Any
+-- other angle goes through the 'Double' sine and cosine and the result
+-- is inexact. Both arguments have to be real. The primitive checks that.
 makePolar :: Number -> Number -> Number
 makePolar mag ang
   | isExactZero ang = mag
@@ -116,12 +126,14 @@ isExactZero = \case
   Exact 0 -> True
   _ -> False
 
+-- | @exact?@. A complex number is exact only when both parts are.
 isExact :: Number -> Bool
 isExact = \case
   Exact _ -> True
   Inexact _ -> False
   Complex a b -> isExact a && isExact b
 
+-- | @inexact?@. The opposite of 'isExact'.
 isInexact :: Number -> Bool
 isInexact = not . isExact
 
@@ -139,35 +151,48 @@ isRational = \case
   Inexact d -> isFiniteDouble d
   Complex _ _ -> False
 
+-- | @real?@. Everything except a v'Complex'. 'makeRectangular' never
+-- leaves an exact zero imaginary part behind, so this is only a test on
+-- the constructor. An inexact zero imaginary part does not make a number
+-- real: @1.0+0.0i@ is complex.
 isReal :: Number -> Bool
 isReal = \case
   Complex _ _ -> False
   _ -> True
 
+-- | @zero?@. True for the exact zero and for both inexact zeros. A
+-- complex number is zero when both parts are.
 isZero :: Number -> Bool
 isZero = \case
   Exact r -> r == 0
   Inexact d -> d == 0
   Complex a b -> isZero a && isZero b
 
+-- | @positive?@ on a real number. False for a NaN and for a complex
+-- number. The primitive rejects a complex argument before it gets here.
 isPositive :: Number -> Bool
 isPositive = \case
   Exact r -> r > 0
   Inexact d -> d > 0
   Complex _ _ -> False
 
+-- | @negative?@ on a real number. False for @-0.0@, for a NaN and for
+-- a complex number.
 isNegative :: Number -> Bool
 isNegative = \case
   Exact r -> r < 0
   Inexact d -> d < 0
   Complex _ _ -> False
 
+-- | @finite?@. False for an infinity or a NaN, and for a complex number
+-- with such a part.
 isFinite :: Number -> Bool
 isFinite = \case
   Exact _ -> True
   Inexact d -> isFiniteDouble d
   Complex a b -> isFinite a && isFinite b
 
+-- | @nan?@. A complex number counts when either part is a NaN.
 isNaN' :: Number -> Bool
 isNaN' = \case
   Exact _ -> False
@@ -201,6 +226,9 @@ toExact (Inexact d)
   | otherwise = throwScheme (TypeError "a finite number" (Num (Inexact d)))
 toExact (Complex a b) = makeRectangular <$> toExact a <*> toExact b
 
+-- | @inexact@. An exact number goes through 'fromRational', so one too
+-- large for a 'Double' becomes an infinity. Both parts of a complex
+-- number are converted. An inexact number comes back unchanged.
 toInexact :: Number -> Number
 toInexact = \case
   Complex a b -> Complex (toInexact a) (toInexact b)
@@ -217,6 +245,7 @@ toIntegerMaybe = \case
 
 -- Complex parts
 
+-- | @real-part@. A real number is its own real part.
 realPart :: Number -> Number
 realPart = \case
   Complex a _ -> a
@@ -236,6 +265,11 @@ imagPartOrZero = \case
   Complex _ b -> b
   _ -> Exact 0
 
+-- | @magnitude@. For an exact complex number this is 'sqrt'' of the sum
+-- of the squares, so @(magnitude 3+4i)@ is the exact 5, and
+-- @(magnitude 1+i)@, which has no exact root, is inexact. An inexact
+-- complex number goes through "Data.Complex". For a real number it is
+-- the absolute value.
 magnitude :: Number -> Number
 magnitude = \case
   n@(Complex a b)
@@ -243,6 +277,9 @@ magnitude = \case
     | otherwise -> Inexact (C.magnitude (toComplexDouble n))
   n -> abs' n
 
+-- | @angle@. Inexact for a complex number. A negative real gives an
+-- inexact pi, exact argument or not. Any other real gives a zero of the
+-- same exactness as the argument.
 angle :: Number -> Number
 angle = \case
   n@(Complex _ _) -> Inexact (C.phase (toComplexDouble n))
@@ -265,6 +302,12 @@ binary ::
 binary fe _ (Exact a) (Exact b) = Exact (fe a b)
 binary _ fi a b = Inexact (fi (toDouble a) (toDouble b))
 
+-- | @+@, @-@ and @*@ on two numbers. Two exact arguments give an exact
+-- result, and one inexact argument makes the result inexact. When a
+-- complex number is involved the work is done on the parts with the
+-- real operations and put back together with 'makeRectangular', so a
+-- result whose imaginary part cancels to an exact zero is real again.
+-- @(* +i +i)@ is the exact integer -1.
 add, sub, mul :: Number -> Number -> Number
 add a b
   | isReal a && isReal b = binary (+) (+) a b
@@ -298,6 +341,7 @@ divide a b
       im <- divide (sub (mul ai br) (mul ar bi)) den
       pure (makeRectangular re im)
 
+-- | Unary @-@. Keeps exactness. Negating @0.0@ gives @-0.0@.
 negate' :: Number -> Number
 negate' = \case
   Exact r -> Exact (negate r)
@@ -327,8 +371,15 @@ integerOp who f a b = do
 wantInteger :: Text -> Number -> Eval Integer
 wantInteger who n = case toIntegerMaybe n of
   Just i -> pure i
-  Nothing -> throwScheme (TypeError (who <> " expects an integer") (Num n))
+  Nothing -> throwScheme (TypeError ("an integer in " <> who) (Num n))
 
+-- | @quotient@, @remainder@ and @modulo@. The primitives also use them
+-- for @truncate-quotient@, @truncate-remainder@ and @floor-remainder@.
+-- 'quotient' and 'remainder' truncate towards zero, and 'modulo' takes
+-- the sign of the divisor. Both arguments must be integers. An inexact
+-- integer such as @7.0@ is accepted and makes the result inexact.
+-- Anything else throws a 'TypeError'. A zero divisor, exact or inexact,
+-- throws 'DivideByZero'.
 quotient, remainder, modulo :: Number -> Number -> Eval Number
 quotient = integerOp "quotient" Prelude.quot
 remainder = integerOp "remainder" Prelude.rem
@@ -430,6 +481,12 @@ rounder f = \case
     | otherwise -> Inexact d
   n -> n
 
+-- | @floor@, @ceiling@, @truncate@ and @round@. An exact argument gives
+-- an exact integer and an inexact one an inexact integer. 'round''
+-- takes a half to the even neighbour. A zero result keeps the sign of
+-- an inexact argument, so @(round -0.5)@ is @-0.0@. Infinities and NaN
+-- come back unchanged. So does a complex number, which the primitives
+-- reject before calling these.
 floor', ceiling', truncate', round' :: Number -> Number
 floor' = rounder floor
 ceiling' = rounder ceiling
@@ -437,9 +494,15 @@ truncate' = rounder truncate
 -- Prelude's round already rounds halves to even, which is what the report wants.
 round' = rounder round
 
+-- | @numerator@, of the argument in lowest terms. For a finite inexact
+-- number the exact value of the 'Double' is taken apart and the answer
+-- is inexact, so @(numerator 0.5)@ is @1.0@. An infinity, a NaN or a
+-- complex number throws a 'TypeError'.
 numerator' :: Number -> Eval Number
 numerator' = ratioPart "numerator" numerator
 
+-- | @denominator@, under the same rules as 'numerator''. It is always
+-- positive. @(denominator 0.5)@ is @2.0@.
 denominator' :: Number -> Eval Number
 denominator' = ratioPart "denominator" denominator
 
@@ -448,7 +511,7 @@ ratioPart who f = \case
   Exact r -> pure (Exact (fromInteger (f r)))
   Inexact d
     | isFiniteDouble d -> pure (Inexact (fromInteger (f (toRational d))))
-  n -> throwScheme (TypeError (who <> " expects a rational") (Num n))
+  n -> throwScheme (TypeError ("a rational in " <> who) (Num n))
 
 -- | exp, log, sin and the others. Always inexact. The first function is
 -- the real version, the second the complex one. A complex argument goes
@@ -464,6 +527,9 @@ transcendental f g n = case n of
           then fromComplexDouble (g (d :+ 0))
           else Inexact r
 
+-- | Two-argument @atan@. The arguments come in the order y, then x,
+-- and the result is the angle of the point (x, y). Always inexact. Only
+-- for real numbers. The primitive checks that.
 atan2' :: Number -> Number -> Number
 atan2' y x = Inexact (atan2 (toDouble y) (toDouble x))
 
@@ -529,6 +595,11 @@ compareNum a b
       | isPositive n = 1
       | otherwise = -1
 
+-- | @=@, @<@, @<=@, @>@ and @>=@ on one pair of numbers, built on
+-- 'compareNum'. Any comparison with a NaN is false. 'eqNum' also takes
+-- complex numbers and compares them part by part. The four orderings
+-- are false for a complex number, and the primitives reject one before
+-- calling them.
 eqNum, ltNum, leNum, gtNum, geNum :: Number -> Number -> Bool
 eqNum a b
   | isReal a && isReal b = compareNum a b == Just EQ

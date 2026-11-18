@@ -3,7 +3,38 @@
 Small programs that show one thing each. Run any of them with
 =iota examples/NAME.iota= from the top of the repository, or with
 =cabal run iota -- examples/NAME.iota= if you have not installed the binary.
+The [[https://fuzztheplanet.github.io/iota/examples.html][examples page]] of the documentation shows each one with its output.
 
-  - =fib.iota=, exact bignums and the time library.
+  - =numbers.iota=, the numeric tower: exact integers of any size, exact
+    rationals, inexact reals and complex numbers.
+  - =fib.iota=, exact bignums, a loop in constant space and the time
+    library. The timings go to standard error.
+  - =records.iota=, =define-record-type=: constructor, predicate,
+    accessors and a modifier.
+  - =macros.iota=, =syntax-rules=: a new control form, a literal keyword,
+    a recursive macro, and hygiene in both directions.
+  - =exceptions.iota=, error objects, =guard=, =raise= with any object,
+    re-raising, and =with-exception-handler= with =raise-continuable=.
+  - =parameters.iota=, =make-parameter= and =parameterize=, a converter,
+    and the current output port as a parameter.
+  - =string-ports.iota=, writing into a string and reading back from one.
+  - =dynamic-wind.iota=, before and after thunks on a normal return, an
+    escape, an error and a re-entry.
   - =generator.iota=, a generator built from re-entrant continuations.
+  - =streams.iota=, lazy streams with =delay=, =delay-force= and =force=.
   - =stack.iota=, importing a library from =my/stack.iota= with a prefix.
+  - =queue.iota=, more about libraries, with =my/queue.iota=: renaming on
+    export and on import, and names that stay private.
+
+Every program writes the same text to standard output on every run, and
+none of them writes a file. The test suite runs each one and compares
+its standard output with a recorded copy under =test/golden/examples/=,
+so keep it that way when you add one: no timings, no addresses and
+nothing that depends on the environment on standard output. A new
+program also gets a section in =docs/examples.org=, which the test
+suite checks.
+
+=haskell/Embed.hs= is not a Scheme program. It is a Haskell program that
+uses iota as a library, described under [[https://fuzztheplanet.github.io/iota/guide.html#using-iota-from-haskell][Using iota from Haskell]] in the
+user's guide. The test suite builds it, runs it and compares what it
+prints with =haskell/Embed.expected=.

@@ -1,0 +1,62 @@
+#+TITLE: Changelog
+
+Changes to iota, newest first. Version numbers follow the Haskell
+[[https://pvp.haskell.org/][Package Versioning Policy]].
+
+* Unreleased
+
+** Fixed
+
+- =port?= is exported from =(scheme base)=. The procedure existed, but no library exported it, so it was unbound.
+- =(scheme r5rs)= exports =syntax-rules=, as the errata to the report have it. A library that imports only =(scheme r5rs)=, and code evaluated in =(scheme-report-environment 5)=, can now define a macro.
+- The counter behind the identities of objects is set to zero when it is created. It used whatever its memory held, and since a negative identity marks a literal constant, a program using iota as a library could have had new objects refused as immutable.
+
+** Changed
+
+- The executable no longer asks the GHC runtime for a 64 MB allocation area. With GHC's default of 4 MB it was faster on every program measured and takes about 50 MB at startup where it took 75 MB. =+RTS -A64m -RTS= gives the old setting back.
+- The documentation says that iota is Linux only.
+- The exported HTML is no longer kept in the repository. =make docs= builds it and the continuous integration workflow publishes it. The one exception is =docs/iota.html=, which is written by hand.
+- Four error messages that read "expected X expects ..." were reworded. Mutating a literal constant now reads =expected a mutable object in set-car!, not a literal constant, got: (1 2)=, and the messages for a non-integer argument to the integer division procedures, a non-rational argument to =numerator= and =denominator=, and an improper list where a list is required follow the same pattern.
+- The user's guide moved from =docs/iota.org= to =docs/guide.org= and was rewritten: a full command line and repl reference, sections on errors and limits, and corrections to what it said about script reading, option passthrough and the library search path. =docs/iota.html= forwards old links.
+- =README.org= is shorter. Installation, usage details and the coverage summary now live on the documentation site.
+- The claim to implement the whole of R7RS-small is replaced by the result of an external test suite and a list of known defects on the coverage page.
+- The coverage page names the tests behind each row and has at least one row per section of chapter 6 of the report.
+- The architecture page is a design document with a worked example, a glossary, the real module layering and measured figures for the run-time settings.
+- =examples/fib.iota= writes its timings to standard error, so its standard output is the same on every run.
+- =Iota.CLI= exports =parserInfo=, the complete option parser that =main= runs, and =Iota.Repl= exports its prompts, its rule for which results are echoed and =parenBalance=. The tests use them. The behaviour of the executable is unchanged.
+- =tested-with= lists GHC 9.6.7 instead of 9.6.4.
+
+** Added
+
+- The documentation is published as HTML at https://fuzztheplanet.github.io/iota/, exported from the Org files under =docs/= by =make docs=.
+- Continuous integration with GitHub Actions: =make check= on every GHC under =tested-with=, =make dist=, and =make docs=, whose result it publishes on a push to =main=.
+- A top-level =Makefile= that everything is built with. Its targets are =build=, =test=, =install=, =docs=, =api=, =conformance=, =check=, =dist= and =clean=.
+- Stable heading ids on every documentation page, with a link marker next to each heading.
+- A navigation bar and a footer with the version on every page, a dark colour scheme, HTML5 output and a description for search engines.
+- New documentation pages: installing iota, a tutorial, the example programs with their output, and the libraries and procedures reference with the full =(iota extras)= list.
+- An index of names on the libraries and procedures page: every exported name with its libraries, whether it is a procedure or syntax, and the section of the report that describes it. Each row has an anchor, as in =procedures.html#vector-map=.
+- A section on using iota from a Haskell program in the user's guide, with =examples/haskell/Embed.hs=. The new test suite =iota-embed-example= builds that program, runs it and compares its output.
+- A Haddock comment on every exported function and type, and the API documentation published with the site under =docs/api/=.
+- Doc tests: the repl transcripts and the =; =>= examples in the documentation are run by =make test=. The links between the pages, the files a page includes, the list of pages in =iota.cabal= and the name lists and the index on the procedures page are checked as well.
+- Tests for the command line parser, for how a script with a read error or an expansion error is processed, and for the rows of the coverage page that had none.
+- More example programs under =examples/=, all run as golden tests.
+- =test/conformance/=, a harness that runs the R7RS test suite of chibi-scheme against iota and compares the totals and the failures with the recorded ones.
+- This changelog.
+
+* 0.1 (2026-09-30)
+
+First version.
+
+- An interpreter for R7RS-small, written in Haskell: reader, hygienic expander, a continuation passing evaluator and printer.
+- The datum syntax of the report, including datum labels, =#;= comments, nested block comments and =#!fold-case=.
+- Exact integers and rationals of any size, IEEE doubles, and complex numbers in rectangular and polar notation.
+- Mutable pairs, strings, vectors and bytevectors. Literal constants are immutable. =equal?= terminates on cyclic data.
+- Proper tail calls, re-entrant =call/cc= and =dynamic-wind=.
+- Hygienic =syntax-rules= with nested ellipsis, a custom ellipsis, =(... ...)= and =_=, plus =let-syntax=, =letrec-syntax= and =syntax-error=.
+- The exception system: =with-exception-handler=, =raise=, =raise-continuable=, =guard= and error objects.
+- =define-library= and =import= with =only=, =except=, =prefix= and =rename=, every =(scheme ...)= library of the report, and libraries loaded from =.iota= files.
+- Records, parameters, promises, =case-lambda=, multiple values, string, bytevector and file ports, =eval=, =load=, =exit= and the time procedures.
+- The non-standard =(iota extras)= library, and a few extensions: =[= and =]= as parentheses, =named-lambda= and curried =define=.
+- The =iota= command: a repl with completion, history and =:= commands, =iota FILE= and =iota run= for scripts, and =iota eval=.
+- A test suite of unit, property and golden tests.
+- Documentation in Org: user's guide, R7RS coverage table, architecture notes and a hacking guide.

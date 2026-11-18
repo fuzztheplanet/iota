@@ -3,6 +3,13 @@
 -- bound names, and the colon commands from the old one survived.
 module Iota.Repl
   ( repl
+
+    -- * What a session looks like
+    -- $session
+  , replPrompt
+  , continuationPrompt
+  , echoedResult
+  , parenBalance
   ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -18,6 +25,13 @@ import System.Console.Haskeline
 import System.Directory (createDirectoryIfMissing, getXdgDirectory, XdgDirectory (XdgState))
 import System.FilePath ((</>))
 
+-- | Run the repl on standard input until end of input or @:q@. Every
+-- input is evaluated in the interpreter's user environment through
+-- 'runTextForOutput', so an error is printed and the loop carries on.
+-- The banner is only shown when standard input is a terminal. History
+-- goes to @iota\/history@ under the XDG state directory. A program that
+-- calls @exit@ ends the repl by throwing @ExitCode@ out of this
+-- function.
 repl :: Interpreter -> IO ()
 repl interp = do
   histFile <- historyPath
@@ -49,7 +63,7 @@ repl interp = do
     -- lands here too.
     loop :: InputT IO ()
     loop = handleInterrupt (outputStrLn "interrupted" >> loop) $ do
-      minput <- getInputLine "iota> "
+      minput <- getInputLine replPrompt
       case minput of
         Nothing -> outputStrLn "Bye." -- ctrl-d
         Just line
@@ -58,17 +72,14 @@ repl interp = do
           | otherwise -> do
               full <- collect (T.pack line)
               result <- liftIO (runTextForOutput interp "<repl>" full)
-              case result of
-                "" -> pure () -- zero values
-                "#<unspecified>" -> pure () -- don't echo defines
-                t -> outputStrLn (T.unpack t)
+              mapM_ (outputStrLn . T.unpack) (echoedResult result)
               loop
 
     collect :: T.Text -> InputT IO T.Text
     collect acc
       | parenBalance acc <= 0 = pure acc
       | otherwise =
-          getInputLine "  ... " >>= \case
+          getInputLine continuationPrompt >>= \case
             Nothing -> pure acc
             Just more -> collect (acc <> "\n" <> T.pack more)
 
@@ -113,6 +124,30 @@ repl interp = do
         loop
       [] -> loop
 
+-- $session
+-- The pieces of the loop that decide what a session looks like on the
+-- screen. They are exported so that the tests can check the transcripts
+-- in the documentation against the rules the repl really follows,
+-- instead of against a copy of them. See Test.Docs.
+
+-- | The prompt for a new input.
+replPrompt :: String
+replPrompt = "iota> "
+
+-- | The prompt for the next line of an input that 'parenBalance' says
+-- is not finished yet.
+continuationPrompt :: String
+continuationPrompt = "  ... "
+
+-- | What the repl prints for the text 'runTextForOutput' returned, if it
+-- prints anything. Zero values give the empty text and a definition
+-- gives the unspecified value, and neither is echoed.
+echoedResult :: T.Text -> Maybe T.Text
+echoedResult = \case
+  "" -> Nothing -- zero values
+  "#<unspecified>" -> Nothing -- don't echo defines
+  t -> Just t
+
 -- | @~\/.local\/state\/iota\/history@, or wherever XDG_STATE_HOME points.
 historyPath :: IO FilePath
 historyPath = do
@@ -122,7 +157,8 @@ historyPath = do
 
 -- | Open parens minus closed, skipping strings, comments and @#\(@.
 -- Only decides whether to show the continuation prompt, so approximate
--- is fine. The reader has the final say.
+-- is fine. The reader has the final say. The repl asks for another line
+-- while this is positive.
 parenBalance :: T.Text -> Int
 parenBalance = go 0 . T.unpack
   where

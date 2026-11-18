@@ -42,6 +42,10 @@ data StdPorts = StdPorts
   , stderrParam :: Value
   }
 
+-- | Wrap the standard handles of the process as textual ports and put
+-- each one in a parameter object. 'Iota.Interpreter.newInterpreter'
+-- calls this once. The handles keep the encoding and buffering they
+-- already have. "Iota.CLI" is what switches them to UTF-8.
 makeStandardPorts :: IO StdPorts
 makeStandardPorts = do
   i <- handlePort "stdin" True SIO.stdin True

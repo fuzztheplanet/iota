@@ -9,6 +9,14 @@ import Iota.Reader (numberFromText)
 import Iota.Types
 import Iota.Value
 
+-- | The numeric procedures that are written in Haskell. @floor/@,
+-- @floor-quotient@ and @truncate/@ are not among them. The stdlib
+-- defines those on top of these.
+--
+-- The predicates on numbers, such as @zero?@, @even?@ and @finite?@,
+-- answer @#f@ for an argument that is not a number instead of raising
+-- an error. @positive?@ and @negative?@ do the same, and raise only
+-- for a complex number.
 numericPrimitives :: [(Symbol, Value)]
 numericPrimitives =
   [ -- arithmetic

@@ -1,0 +1,128 @@
+# Continuous integration, on every push to main and every pull request.
+# Every step that builds something is a make target, so the same checks can
+# be run by hand.  docs/hacking.org describes them.
+#
+#   build   make check on each GHC listed under tested-with in iota.cabal:
+#           build with the tests, run both test suites, build the Haddock
+#           pages and run the external R7RS suite.  cabal test includes the
+#           doc tests and the example programs, so a page or an example that
+#           has drifted from the interpreter fails here.  On the GHC the
+#           project is developed with, warnings are errors, and make dist
+#           checks that the source distribution builds and passes its tests
+#           on its own.
+#   site    make docs: export the documentation pages and build the API
+#           pages.
+#   deploy  on main, once build and site have passed, publish what site
+#           built to GitHub Pages.
+#
+# The site is not checked in, so this workflow is what publishes it.  For
+# that the repository has to deploy Pages from GitHub Actions: Settings,
+# Pages, Source.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request replaces the run in progress.  On main a run
+# is left to finish, so that a deployment is never cut off half way.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The test suite prints names with characters outside ASCII.
+  LANG: C.UTF-8
+
+jobs:
+  build:
+    name: GHC ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in step with tested-with in iota.cabal.
+        ghc: ['9.4.8', '9.6.7', '9.8.2']
+        include:
+          # The GHC the project is developed with.  Only there are warnings
+          # errors: a newer compiler may add warnings, and that should not
+          # fail a build.
+          - ghc: '9.6.7'
+            primary: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: '3.10'
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-ghc-${{ matrix.ghc }}-${{ hashFiles('iota.cabal', 'cabal.project') }}
+          restore-keys: cabal-${{ runner.os }}-ghc-${{ matrix.ghc }}-
+
+      - name: Build, tests, Haddock and the external R7RS suite
+        env:
+          STRICT: ${{ matrix.primary && '--ghc-options=-Werror' || '' }}
+        run: make check STRICT="$STRICT"
+
+      - name: Source distribution
+        if: matrix.primary
+        run: make dist
+
+  site:
+    name: Documentation site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The API pages are built by Haddock, so this job needs GHC as well.
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.10'
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-ghc-9.6.7-${{ hashFiles('iota.cabal', 'cabal.project') }}
+          restore-keys: cabal-${{ runner.os }}-ghc-9.6.7-
+
+      # The Emacs, and with it the Org, that the pages are written against.
+      # See docs/hacking.org before changing it.
+      - uses: purcell/setup-emacs@v8.0
+        with:
+          version: '31.1'
+
+      - name: Export the pages and build the API pages
+        run: make docs
+
+      - name: Keep the site for the deploy job
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+  deploy:
+    name: Publish the site
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [build, site]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

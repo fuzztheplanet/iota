@@ -1,15 +1,16 @@
--- | The evaluator. Fully expanded Core goes in, a closure in continuation
--- passing style comes out. The reason for CPS is call/cc. A direct style
--- evaluator in IO cannot re-enter a continuation, and once everything is
--- CPS anyway, tail calls are free. Every Scheme call becomes a Haskell
--- tail call with the continuation passed along, and whatever work is
--- still pending lives on the heap, not the Haskell stack.
+-- | The evaluator. Fully expanded 'Core' goes in, 'Code', a closure in
+-- continuation passing style, comes out. The reason for CPS is call/cc.
+-- A direct style evaluator in IO cannot re-enter a continuation, and
+-- once everything is CPS anyway, tail calls are free. Every Scheme call
+-- becomes a Haskell tail call with the continuation passed along, and
+-- whatever work is still pending lives on the heap, not the Haskell
+-- stack.
 --
--- When a primitive fails it throws a SchemeError. applyK catches that at
--- the call and passes the condition object to the current Scheme handler
--- together with the continuation of the failing call. Only if no handler
--- is installed does the exception keep going up to the boundary in
--- "Iota.Interpreter".
+-- When a primitive fails it throws a 'SchemeError'. 'applyK' catches
+-- that at the call and passes the condition object to the current
+-- Scheme handler together with the continuation of the failing call.
+-- Only if no handler is installed does the exception keep going up to
+-- the boundary in "Iota.Interpreter".
 module Iota.Eval
   ( -- * Compilation
     compile
@@ -239,11 +240,11 @@ applyK rt f args k = case f of
       AtLeast x -> m >= x
       Between lo hi -> m >= lo && m <= hi
 
--- | For PrimitiveK bodies. Run some IO that may throw a SchemeError,
--- usually argument checking, then continue with the result. A failure
--- goes to the Scheme handler with k as the continuation. The
--- continuation runs outside the try, otherwise an error raised further
--- down would be caught here a second time.
+-- | For 'PrimitiveK' bodies. Run some IO that may throw a
+-- 'SchemeError', usually argument checking, then continue with the
+-- result. A failure goes to the Scheme handler with k as the
+-- continuation. The continuation runs outside the try, otherwise an
+-- error raised further down would be caught here a second time.
 guardIO :: Runtime -> K -> IO a -> (a -> IO Value) -> IO Value
 guardIO rt k action kont = do
   r <- try action
@@ -251,6 +252,8 @@ guardIO rt k action kont = do
     Right a -> kont a
     Left e -> raiseError rt e k
 
+-- | The dynamic state in effect right now: the wind list and the
+-- handler stack. A snapshot, which is what a continuation stores.
 readDyn :: Runtime -> IO DynState
 readDyn rt = readIORef (rtDyn rt)
 
@@ -265,8 +268,9 @@ withHandlers rt handlers action k = do
     k v
 
 -- | An error found on the Haskell side. With no handler installed the
--- SchemeError is thrown as is and the interpreter boundary prints it.
--- Otherwise it becomes a condition object and gets raised.
+-- 'SchemeError' is thrown as is and the interpreter boundary prints it.
+-- Otherwise it becomes a condition object, through 'errorToValue', and
+-- gets raised with 'raiseValue'.
 raiseError :: Runtime -> SchemeError -> K -> IO Value
 raiseError rt e k = do
   d <- readIORef (rtDyn rt)
@@ -307,7 +311,11 @@ withExceptionHandler rt handler thunk k = do
   d <- readIORef (rtDyn rt)
   withHandlers rt (handler : dynHandlers d) (applyK rt thunk []) k
 
--- | What a SchemeError looks like once a Scheme handler gets to see it.
+-- | What a 'SchemeError' looks like once a Scheme handler gets to see
+-- it. A raised object comes back as itself. Everything else becomes an
+-- error object whose message and irritants @error-object-message@ and
+-- @error-object-irritants@ return. A 'FileError' satisfies
+-- @file-error?@ and a 'ParseFailure' satisfies @read-error?@.
 errorToValue :: SchemeError -> Eval Value
 errorToValue = \case
   RaisedObject v -> pure v
@@ -332,8 +340,8 @@ callCC rt f k = do
   i <- freshId
   applyK rt f [Proc Continuation {contId = i, contK = k, contDyn = d}] k
 
--- | dynamic-wind on the normal path. Escapes and re-entries are handled
--- by rewind when a continuation is called.
+-- | @dynamic-wind@ on the normal path. Escapes and re-entries are
+-- handled by 'rewind' when a continuation is called.
 dynamicWind :: Runtime -> Value -> Value -> Value -> K -> IO Value
 dynamicWind rt before thunk after k =
   applyK rt before [] $ \_ -> do
@@ -370,7 +378,8 @@ rewind rt from to cont = runExits (length from - commonLen) from
         modifyIORef' (rtDyn rt) (\d -> d {dynWinds = f : dynWinds d})
         runEntries fs next
 
--- | Leave every dynamic-wind. For exit.
+-- | Leave every @dynamic-wind@, running the after thunks innermost
+-- first, then run the action. For @exit@.
 unwindAll :: Runtime -> IO Value -> IO Value
 unwindAll rt cont = do
   d <- readIORef (rtDyn rt)

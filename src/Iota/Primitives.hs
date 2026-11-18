@@ -14,6 +14,13 @@ import Iota.Primitives.Strings (stringPrimitives)
 import Iota.Primitives.Vectors (vectorPrimitives)
 import Iota.Types
 
+-- | Every primitive written in Haskell, as pairs of a name and a
+-- procedure. 'Iota.Interpreter.newInterpreter' writes them into the
+-- implementation environment and then loads the Scheme half of the
+-- stdlib, which wraps a few of them, @member@ and @assoc@ among them.
+-- Nothing here is visible to a program until an export list in
+-- "Iota.Library" names it. The internal names that start with @%@ are
+-- never exported.
 primitiveBindings :: Runtime -> [(Symbol, Value)]
 primitiveBindings rt =
   concat

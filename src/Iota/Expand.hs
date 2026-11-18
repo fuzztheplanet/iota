@@ -1,8 +1,13 @@
--- | The expander. A datum goes in and Core comes out, with macros
+-- | The expander. A 'Datum' goes in and 'Core' comes out, with macros
 -- expanded, derived forms rewritten and every identifier resolved to a
 -- local or a global cell. It runs once per top level form before that
 -- form is evaluated. The derived forms are in "Iota.Expand.Derived" and
 -- the library stuff in "Iota.Expand.Library".
+--
+-- 'expandTop' expands one top level form without running it. An
+-- @import@ or a @define-library@ still takes effect right there, during
+-- expansion. The functions ending in K expand a form, compile it with
+-- 'compile' and run it, passing the value to a continuation.
 module Iota.Expand
   ( -- * Contexts
     Ex (..)

@@ -11,6 +11,12 @@ import Data.Text qualified as T
 import Iota.Types
 import Iota.Value
 
+-- | The character and string procedures. The @-ci@ comparisons use
+-- full Unicode case folding on strings, where one character can fold to
+-- several, and a one to one mapping on characters. @string-map@ and
+-- @string-for-each@ are not here. They call back into Scheme, so they
+-- are in "Iota.Primitives.Control". @string->vector@ is in
+-- "Iota.Primitives.Vectors".
 stringPrimitives :: [(Symbol, Value)]
 stringPrimitives =
   [ -- characters

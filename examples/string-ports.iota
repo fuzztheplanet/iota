@@ -1,0 +1,61 @@
+;; String ports: reading from a string and writing into one with the
+;; same procedures that work on files and the terminal.
+
+(import (scheme base) (scheme read) (scheme write))
+
+;; An output string port collects whatever is written to it.
+(define out (open-output-string))
+(write 'symbol out)
+(write-char #\space out)
+(write "a string" out)
+(write-char #\space out)
+(display "a string" out)
+(write-char #\space out)
+(write (list 1 2.5 #\x) out)
+
+(define text (get-output-string out))
+(display text)
+(newline)
+
+;; An input string port gives it back. read takes one datum at a time
+;; and returns an end-of-file object when nothing is left.
+(define in (open-input-string text))
+
+(let loop ((datum (read in)) (n 1))
+  (unless (eof-object? datum)
+    (display n)
+    (display ": ")
+    (write datum)
+    (newline)
+    (loop (read in) (+ n 1))))
+
+;; read-line, read-char, peek-char and read-string work on it too.
+(define lines (open-input-string "first line\nsecond line\nxyz"))
+
+(write (read-line lines))
+(newline)
+(write (read-char lines))
+(newline)
+(write (peek-char lines))
+(newline)
+(write (read-string 5 lines))
+(newline)
+(write (read-line lines))
+(newline)
+(write (read-line lines))
+(newline)
+(write (eof-object? (read-char lines)))
+(newline)
+
+;; A string port makes a small string builder.
+(define (join-with sep items)
+  (let ((port (open-output-string)))
+    (let loop ((items items) (first? #t))
+      (unless (null? items)
+        (unless first? (write-string sep port))
+        (display (car items) port)
+        (loop (cdr items) #f)))
+    (get-output-string port)))
+
+(write (join-with ", " '(1 two "three")))
+(newline)

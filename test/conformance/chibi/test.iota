@@ -1,0 +1,217 @@
+;;; A stand-in for chibi-scheme's (chibi test) library, so that chibi's
+;;; tests/r7rs-tests.scm can run under iota. See README.org next to the
+;;; chibi directory.
+;;;
+;;; It is written from the interface the suite uses, in portable R7RS, and
+;;; shares no code with chibi's library. It provides test, test-assert,
+;;; test-values, test-error, test-begin and test-end, and nothing else.
+;;;
+;;; Output is line oriented and tab separated, for run.sh:
+;;;
+;;;   FAIL   <group>  <test>  #<n>  <what went wrong>
+;;;   GROUP  <group>  <passed>  <failed>
+;;;   TOTAL  <tests>  <passed>  <failed>
+;;;
+;;; <test> is the name given to the test form, or its expression as
+;;; written. <n> counts the tests of that name in the group, because the
+;;; suite's own macros produce many tests with the same text.
+
+(define-library (chibi test)
+  (export test test-assert test-values test-error test-begin test-end)
+  (import (scheme base) (scheme write) (scheme complex) (scheme inexact))
+  (begin
+
+    ;; A group is a vector: name, passed, failed, and an association
+    ;; list from test name to how often it has been seen.
+    (define groups '())
+    (define total-passed 0)
+    (define total-failed 0)
+
+    (define (make-group name) (vector name 0 0 '()))
+
+    (define (current-group)
+      (when (null? groups)
+        (set! groups (list (make-group "(no group)"))))
+      (car groups))
+
+    (define (occurrence! group name)
+      (let* ((seen (vector-ref group 3))
+             (entry (assoc name seen)))
+        (if entry
+            (begin (set-cdr! entry (+ (cdr entry) 1)) (cdr entry))
+            (begin (vector-set! group 3 (cons (cons name 1) seen)) 1))))
+
+    (define (written x)
+      (let ((out (open-output-string)))
+        (write x out)
+        (get-output-string out)))
+
+    ;; Fields are separated by tabs and lines by newlines, so a name
+    ;; must hold neither.
+    (define (one-line s)
+      (string-map (lambda (c) (if (or (char=? c #\tab) (char=? c #\newline)) #\space c))
+                  s))
+
+    (define (written-values vals)
+      (cond ((null? vals) "no values")
+            ((null? (cdr vals)) (written (car vals)))
+            (else
+             (apply string-append
+                    (written (car vals))
+                    (map (lambda (v) (string-append " " (written v))) (cdr vals))))))
+
+    (define (describe-condition c)
+      (if (error-object? c)
+          (apply string-append
+                 (error-object-message c)
+                 (map (lambda (i) (string-append " " (written i)))
+                      (error-object-irritants c)))
+          (written c)))
+
+    (define (record! name passed? detail)
+      (let* ((group (current-group))
+             (name (one-line name))
+             (n (occurrence! group name)))
+        (if passed?
+            (begin
+              (vector-set! group 1 (+ (vector-ref group 1) 1))
+              (set! total-passed (+ total-passed 1)))
+            (begin
+              (vector-set! group 2 (+ (vector-ref group 2) 1))
+              (set! total-failed (+ total-failed 1))
+              (for-each display
+                        (list "FAIL\t" (one-line (vector-ref group 0)) "\t" name
+                              "\t#" n "\t" (one-line detail)))
+              (newline)))))
+
+    ;; (ok value ...) when the thunk returns, (raised . condition) when
+    ;; it raises anything at all.
+    (define (attempt thunk)
+      (guard (c (#t (cons 'raised c)))
+        (call-with-values thunk (lambda vals (cons 'ok vals)))))
+
+    (define (raised? outcome) (eq? (car outcome) 'raised))
+
+    ;; The comparison (chibi test) documents: equal?, or the expected
+    ;; value is inexact and the result is within an epsilon of it. An
+    ;; exact result is accepted where an inexact one is expected. Complex
+    ;; numbers are compared part by part.
+    ;;
+    ;; A NaN or an infinity is never within epsilon of anything. It
+    ;; passes only through equal?, that is, when it is what the test
+    ;; expects. This is spelled out, and min and max are avoided,
+    ;; because what arithmetic and comparison return for a NaN differs
+    ;; between implementations and with the order of the arguments.
+    (define epsilon 1e-5)
+
+    (define (within-epsilon? a b)
+      (cond ((or (nan? a) (nan? b)) #f)
+            ((or (infinite? a) (infinite? b)) #f)
+            ((or (zero? a) (zero? b)) (< (abs (- a b)) epsilon))
+            (else
+             (let ((larger (if (> (abs a) (abs b)) (abs a) (abs b))))
+               (< (/ (abs (- a b)) larger) epsilon)))))
+
+    (define (same? expected actual)
+      (cond ((equal? expected actual) #t)
+            ((real? expected)
+             (and (inexact? expected)
+                  (real? actual)
+                  (within-epsilon? expected actual)))
+            ((and (complex? expected) (complex? actual))
+             (and (same? (real-part expected) (real-part actual))
+                  (same? (imag-part expected) (imag-part actual))))
+            (else #f)))
+
+    (define (all-same? expected actual)
+      (cond ((null? expected) (null? actual))
+            ((null? actual) #f)
+            (else (and (same? (car expected) (car actual))
+                       (all-same? (cdr expected) (cdr actual))))))
+
+    (define (run-test name expected-thunk actual-thunk)
+      (let ((expected (attempt expected-thunk)))
+        (if (raised? expected)
+            (record! name #f
+                     (string-append "the expected value raised "
+                                    (describe-condition (cdr expected))))
+            (let ((actual (attempt actual-thunk)))
+              (cond ((raised? actual)
+                     (record! name #f
+                              (string-append "expected " (written-values (cdr expected))
+                                             ", raised " (describe-condition (cdr actual)))))
+                    ((all-same? (cdr expected) (cdr actual))
+                     (record! name #t ""))
+                    (else
+                     (record! name #f
+                              (string-append "expected " (written-values (cdr expected))
+                                             ", got " (written-values (cdr actual))))))))))
+
+    (define (run-assert name thunk)
+      (let ((actual (attempt thunk)))
+        (cond ((raised? actual)
+               (record! name #f
+                        (string-append "expected a true value, raised "
+                                       (describe-condition (cdr actual)))))
+              ((and (pair? (cdr actual)) (null? (cddr actual)) (cadr actual))
+               (record! name #t ""))
+              (else
+               (record! name #f
+                        (string-append "expected a true value, got "
+                                       (written-values (cdr actual))))))))
+
+    (define (run-error name thunk)
+      (let ((actual (attempt thunk)))
+        (if (raised? actual)
+            (record! name #t "")
+            (record! name #f
+                     (string-append "expected an error, got "
+                                    (written-values (cdr actual)))))))
+
+    ;; (test expected expr) and (test name expected expr).
+    (define-syntax test
+      (syntax-rules ()
+        ((_ expected expr)
+         (run-test (written 'expr) (lambda () expected) (lambda () expr)))
+        ((_ name expected expr)
+         (run-test name (lambda () expected) (lambda () expr)))))
+
+    ;; Both sides may return several values. run-test compares the whole
+    ;; list of values either way.
+    (define-syntax test-values
+      (syntax-rules ()
+        ((_ expected expr)
+         (run-test (written 'expr) (lambda () expected) (lambda () expr)))
+        ((_ name expected expr)
+         (run-test name (lambda () expected) (lambda () expr)))))
+
+    (define-syntax test-assert
+      (syntax-rules ()
+        ((_ expr) (run-assert (written 'expr) (lambda () expr)))
+        ((_ name expr) (run-assert name (lambda () expr)))))
+
+    (define-syntax test-error
+      (syntax-rules ()
+        ((_ expr) (run-error (written 'expr) (lambda () expr)))
+        ((_ name expr) (run-error name (lambda () expr)))))
+
+    (define (test-begin . name)
+      (set! groups (cons (make-group (if (pair? name) (car name) "(unnamed)")) groups)))
+
+    ;; Closing the outermost group prints the totals. run.sh takes a
+    ;; missing TOTAL line to mean the suite stopped half way.
+    (define (test-end . name)
+      (when (null? groups)
+        (error "test-end without a matching test-begin"))
+      (let ((group (car groups)))
+        (set! groups (cdr groups))
+        (when (> (+ (vector-ref group 1) (vector-ref group 2)) 0)
+          (for-each display
+                    (list "GROUP\t" (one-line (vector-ref group 0))
+                          "\t" (vector-ref group 1) "\t" (vector-ref group 2)))
+          (newline))
+        (when (null? groups)
+          (for-each display
+                    (list "TOTAL\t" (+ total-passed total-failed)
+                          "\t" total-passed "\t" total-failed))
+          (newline))))))

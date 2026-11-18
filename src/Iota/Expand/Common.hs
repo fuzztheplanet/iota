@@ -1,6 +1,7 @@
--- | What the expander modules share. The context record, the syntax
--- error helper, aliases into the implementation environment, shape
--- checks for formals and bindings, and reading source files.
+-- | What the expander modules share. The context record 'Ex', the
+-- syntax error helper 'syntaxError', aliases into the implementation
+-- environment through 'implRef', shape checks for formals and bindings,
+-- and reading source files.
 module Iota.Expand.Common
   ( -- * Contexts
     Ex (..)
@@ -57,16 +58,25 @@ type Runner = Ex -> GlobalEnv -> [Datum] -> IO ()
 -- | Expander context. Everything except the syntactic environment.
 data Ex = Ex
   { exRt :: Runtime
+  -- ^ The interpreter this expansion belongs to.
   , -- | Where include resolves relative paths.
     exDir :: FilePath
   , -- | Position of the top level form being expanded, for error messages.
     exLoc :: Maybe SrcLoc
   , exRun :: Runner
+  -- ^ How to run the body of a library. See 'Runner'.
   }
 
+-- | The same context, for a top level form that starts at the given
+-- position.
 withLoc :: SrcLoc -> Ex -> Ex
 withLoc loc ex = ex {exLoc = Just loc}
 
+-- | Throw 'BadSyntax'. The text says which form, or which part of
+-- one, is malformed. The message reads @bad syntax in@ followed by it.
+-- The datum is the offending form. It is stripped of renamings and
+-- turned into a value, so the message can print it and a handler gets
+-- it as an irritant.
 syntaxError :: Text -> Datum -> IO a
 syntaxError what form = do
   v <- datumToValue (stripSyntax form)
@@ -78,11 +88,20 @@ syntaxError what form = do
 implRef :: Ex -> Text -> IO Datum
 implRef ex name = freshAlias (topEnv (rtImpl (exRt ex))) (DSymbol (Symbol name))
 
+-- | What the first element of a form turns out to be.
 data Head
   = HSpecial Symbol
+  -- ^ A keyword of the expander. The symbol is the keyword's own name,
+  -- even when the user imported it under another one.
   | HMacro Macro
+  -- ^ A macro to expand.
   | HOther
+  -- ^ Anything else: a variable, an unbound name, or no identifier at
+  -- all. The form is an application or an atom.
 
+-- | Classify a form by resolving its head in the given environment.
+-- Resolving is what makes a locally rebound @if@ a plain variable. A
+-- form that is not a list is 'HOther'.
 headOf :: SynEnv -> Datum -> IO Head
 headOf env form = case form of
   DList (h : _) _ | isIdent h ->
@@ -92,6 +111,10 @@ headOf env form = case form of
       _ -> pure HOther
   _ -> pure HOther
 
+-- | Expand one macro use. The environment is the one the use was
+-- written in. The result is not expanded any further. A use that no
+-- rule matches, or a template that cannot be filled in, throws
+-- 'MacroError' with the form.
 useMacro :: SynEnv -> Macro -> Datum -> IO Datum
 useMacro env m form =
   expandMacro m env form >>= \case
@@ -104,9 +127,13 @@ beginOf ex ds = do
   b <- implRef ex "begin"
   pure (listOf (b : ds))
 
+-- | A proper list datum.
 listOf :: [Datum] -> Datum
 listOf xs = DList xs Nothing
 
+-- | Everything after the head of a form. Empty for a datum that is
+-- not a proper list, so a malformed use falls through to the error
+-- case of whoever matches on the arguments.
 formArgs :: Datum -> [Datum]
 formArgs (DList (_ : args) Nothing) = args
 formArgs _ = []
@@ -154,6 +181,8 @@ specialForms =
   , "import", "define-library", "export", "include-library-declarations"
   ]
 
+-- | Bind every keyword in 'specialForms' in the given environment.
+-- Done once, for the implementation environment.
 installSpecialForms :: GlobalEnv -> IO ()
 installSpecialForms env = forM_ specialForms $ \s -> globalBind env s (DenSpecial s)
 
@@ -171,6 +200,9 @@ readSourceFile path = do
       Left _ -> throwScheme (FileError (T.pack path <> ": not valid UTF-8"))
       Right t -> pure t
 
+-- | Read a file and parse all of it. A file that cannot be read or is
+-- not UTF-8 throws 'FileError', and one that does not parse throws
+-- 'ParseFailure'. The data come back without source positions.
 readSourceDatums :: FilePath -> IO [Datum]
 readSourceDatums path = do
   src <- readSourceFile path

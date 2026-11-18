@@ -1,0 +1,269 @@
+#+TITLE: Installing iota
+#+DESCRIPTION: How to build, test and install the iota Scheme interpreter from source with make, GHC and cabal, on Linux only, and what the executable needs at run time.
+#+SETUPFILE: setup.org
+
+* What you need
+  :PROPERTIES:
+  :CUSTOM_ID: what-you-need
+  :END:
+
+  iota is built from source, with =make=. That takes:
+
+  - Linux. iota is Linux only: it is developed and tested there, and
+    it has not been built or run on any other system.
+  - GHC. The versions iota is meant to build with are listed under
+    =tested-with= in [[https://github.com/fuzztheplanet/iota/blob/main/iota.cabal][iota.cabal]], and the continuous integration
+    workflow builds with each of them. This page was checked with
+    GHC 9.6.7.
+  - cabal-install. This page was checked with 3.10. The package
+    description is written in the =cabal-version: 3.4= format, so
+    nothing older than cabal-install 3.4 can read it, and nothing
+    older than 3.10 has been tried.
+  - GNU make. The Makefile at the top of the repository is how iota
+    is built. It runs cabal.
+  - A network connection for the first build. cabal downloads the
+    Haskell packages iota depends on.
+
+  Two targets need more. =make docs= builds these pages and needs
+  Emacs, see [[file:hacking.org::#documentation][Hacking on iota]]. =make conformance= fetches an
+  external test suite and needs curl.
+
+  The commands on this page were checked on Arch Linux with GHC 9.6.7
+  and cabal-install 3.10.3.0, set up as described under
+  [[#arch-linux-packages][Arch Linux packages]]. =make install= was checked with an install
+  directory given in =INSTALLFLAGS=, not with cabal's default one. The
+  ghcup route was not exercised for this page.
+
+* Getting GHC and cabal
+  :PROPERTIES:
+  :CUSTOM_ID: getting-ghc-and-cabal
+  :END:
+
+** ghcup
+   :PROPERTIES:
+   :CUSTOM_ID: ghcup
+   :END:
+
+   [[https://www.haskell.org/ghcup/][ghcup]] installs GHC and cabal under your home directory, in the
+   versions you ask for. Pick a GHC version from =tested-with=:
+
+   #+begin_src sh
+     ghcup install ghc VERSION
+     ghcup set ghc VERSION
+     ghcup install cabal
+   #+end_src
+
+   On Arch Linux, ghcup is the =ghcup-hs-bin= package in the AUR.
+
+** Arch Linux packages
+   :PROPERTIES:
+   :CUSTOM_ID: arch-linux-packages
+   :END:
+
+   #+begin_src sh
+     sudo pacman -S ghc cabal-install
+   #+end_src
+
+   Arch's =ghc= package ships only the shared versions of the Haskell
+   libraries. The static ones are in a separate package, =ghc-static=,
+   which was not tried for this page. cabal builds and links
+   statically unless it is told otherwise, and with these two
+   packages alone that stops the build with
+
+   #+begin_example
+     Could not find module ‘Prelude’
+     There are files missing in the ‘base-4.18.3.0’ package,
+   #+end_example
+
+   So tell cabal to build shared libraries and to link executables
+   dynamically. Set these three fields in cabal's configuration
+   file, which is =~/.config/cabal/config=, or =~/.cabal/config= on an
+   installation that still uses the older layout:
+
+   #+begin_example
+     library-vanilla: False
+     shared: True
+     executable-dynamic: True
+   #+end_example
+
+   If the file does not exist yet, =cabal user-config init= creates
+   it. What dynamic linking costs is described under
+   [[#what-the-executable-needs-at-run-time][What the executable needs at run time]].
+
+* Building and testing
+  :PROPERTIES:
+  :CUSTOM_ID: building-and-testing
+  :END:
+
+  #+begin_src sh
+    git clone https://github.com/fuzztheplanet/iota.git
+    cd iota
+    cabal update     # once, so that cabal has the package index
+    make build
+    make test
+  #+end_src
+
+  =make build= compiles the library and the =iota= executable, with
+  =cabal build=. =make test= builds the two test suites and runs them,
+  with =cabal test=. Every test has to pass. =make= on its own does
+  both and then builds the documentation, which needs Emacs.
+  =make help= lists every target, and so does the [[https://github.com/fuzztheplanet/iota#building][README]].
+
+  The executable stays in cabal's build directory. It can be used
+  from there:
+
+  #+begin_src sh
+    cabal run iota                      # the repl
+    cabal run iota -- eval '(+ 1 2)'    # everything after -- goes to iota
+    cabal list-bin iota                 # print the path of the executable
+  #+end_src
+
+* Installing
+  :PROPERTIES:
+  :CUSTOM_ID: installing
+  :END:
+
+  #+begin_src sh
+    make install
+  #+end_src
+
+  This runs =cabal install=. It builds iota once more, into cabal's
+  store, and puts an =iota= executable in cabal's install directory,
+  in place of one that is already there. By default that is a
+  symbolic link to the copy in the store. cabal reports the location
+  when it is done.
+
+  The install directory is the =installdir= field of cabal's
+  configuration file. It is =~/.local/bin= when cabal uses the XDG
+  directory layout, and =~/.cabal/bin= when it uses the older
+  =~/.cabal= layout. You can also name it yourself. =INSTALLFLAGS=
+  takes any option of =cabal install=, and =--install-method=copy=
+  makes the executable a real copy:
+
+  #+begin_src sh
+    make install INSTALLFLAGS=--installdir=$HOME/.local/bin
+    make install INSTALLFLAGS="--installdir=$HOME/.local/bin --install-method=copy"
+  #+end_src
+
+  Either way the directory has to be on your =PATH=. Then
+
+  #+begin_src sh
+    iota --version
+  #+end_src
+
+  prints the name and the version, and =iota= on its own starts the
+  repl.
+
+* What the executable needs at run time
+  :PROPERTIES:
+  :CUSTOM_ID: what-the-executable-needs-at-run-time
+  :END:
+
+  It needs no data files. The Scheme half of the standard library,
+  =lib/iota/stdlib.iota=, is embedded in the executable when it is
+  compiled, so iota does not look for its source tree when it runs.
+
+  Whether the executable also carries the Haskell libraries depends
+  on how GHC was set up.
+
+  - Static linking is GHC's own default. The Haskell libraries are
+    then part of the executable, and what remains are the system C
+    libraries. This was not tested for this page.
+  - With dynamic linking, which is what the [[#arch-linux-packages][Arch Linux packages]] need,
+    the executable is small and loads the Haskell libraries as shared
+    objects when it starts. In the build this page was checked with
+    it is about 20 KB and loads 43 of them: GHC's own, the =haskell-*=
+    packages that pacman had installed and cabal reused, the ones
+    cabal built in its store, and iota's own library, which stays in
+    the build directory unless iota is installed.
+
+  A dynamically linked =iota= runs only on the machine it was built
+  on, and only until one of those libraries is removed or replaced.
+  A system upgrade that brings a new build of one of them is enough.
+  The executable then fails to start:
+
+  #+begin_example
+    iota: error while loading shared libraries: libHShashable-1.4.7.0-2v1lh6oov5K7MTECHTZafM-ghc9.6.7.so: cannot open shared object file: No such file or directory
+  #+end_example
+
+  Building and installing again repairs it.
+
+  =ldd= shows what a particular executable needs. The Haskell
+  libraries are the lines that start with =libHS=:
+
+  #+begin_src sh
+    ldd "$(cabal list-bin iota)"
+  #+end_src
+
+  An executable that is meant to be copied to another machine needs
+  the statically linked Haskell libraries and
+  ~make install INSTALLFLAGS=--install-method=copy~. It still depends
+  on the system libraries that =ldd= lists.
+
+* A first session
+  :PROPERTIES:
+  :CUSTOM_ID: a-first-session
+  :END:
+
+  #+begin_example
+    $ iota
+    iota, an R7RS-small Scheme. Type :help for help.
+    iota> (+ 1/3 1/6)
+    1/2
+    iota> (map (lambda (x) (* x x)) '(1 2 3))
+    (1 4 9)
+    iota> (string-append "hello, " "world")
+    "hello, world"
+    iota> :q
+    Bye.
+  #+end_example
+
+  =:q= or Ctrl-D leaves the repl. A file is run by naming it:
+
+  #+begin_example
+    $ cat hello.iota
+    (import (scheme base) (scheme write))
+    (display "hello")
+    (newline)
+    $ iota hello.iota
+    hello
+  #+end_example
+
+* When something fails
+  :PROPERTIES:
+  :CUSTOM_ID: when-something-fails
+  :END:
+
+  - The build stops with =Could not find module ‘Prelude’= and "files missing in the base package" ::
+    GHC has only shared libraries and cabal is linking statically.
+    Set the three fields under [[#arch-linux-packages][Arch Linux packages]].
+  - cabal cannot resolve the dependencies ::
+    =iota.cabal= puts upper bounds on its dependencies, and some of
+    them are libraries that come with GHC, such as =base=,
+    =containers= and =time=. A GHC outside the =tested-with= list can
+    fall outside those bounds. Use one of the listed versions. On a
+    new installation, also run =cabal update= first.
+  - =iota: command not found= after =make install= ::
+    cabal's install directory is not on your =PATH=. See
+    [[#installing][Installing]].
+  - =error while loading shared libraries= ::
+    A shared Haskell library the executable was linked against is
+    gone. Build and install again. See
+    [[#what-the-executable-needs-at-run-time][What the executable needs at run time]].
+  - A test fails ::
+    That is a bug. [[file:hacking.org::#sending-a-change][Hacking on iota]] says what a useful report
+    contains.
+
+* Where to go next
+  :PROPERTIES:
+  :CUSTOM_ID: where-to-go-next
+  :END:
+
+  - [[file:tutorial.org][A tour of iota]] goes through the language with examples to type
+    in.
+  - [[file:guide.org][Using iota]] is the reference for the command line, the repl,
+    libraries, errors and limits.
+  - [[file:procedures.org][Libraries and procedures]] lists what each library exports.
+  - [[file:examples.org][Examples]] shows the example programs with their output. They
+    can be run with =iota examples/NAME.iota= from the top of the
+    source tree.

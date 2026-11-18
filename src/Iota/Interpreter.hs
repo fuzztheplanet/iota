@@ -1,8 +1,8 @@
--- | Where everything is wired together. newInterpreter builds the
+-- | Where everything is wired together. 'newInterpreter' builds the
 -- implementation environment out of the core syntax, the Haskell
 -- primitives and the Scheme half of the stdlib, sets up the standard
 -- libraries as views onto it, and makes an interaction environment with
--- all of them imported. runText is the error boundary. No Scheme error
+-- all of them imported. 'runText' is the error boundary. No Scheme error
 -- gets past it.
 {-# LANGUAGE TemplateHaskell #-}
 module Iota.Interpreter
@@ -54,6 +54,20 @@ data Interpreter = Interpreter
 stdlibSource :: Text
 stdlibSource = TE.decodeUtf8 $(makeRelativeToProject "lib/iota/stdlib.iota" >>= embedFile)
 
+-- | A new interpreter. It has an implementation environment holding
+-- the core syntax, the primitives and the stdlib, the standard
+-- libraries registered over that, and a fresh user environment that
+-- imports all of them and @(iota extras)@. The library search path is
+-- read here, once: the directories in @IOTA_LIBRARY_PATH@, then @lib@
+-- under the working directory.
+--
+-- Interpreters do not share environments, libraries or dynamic state,
+-- so several can run in one process. They do share the standard
+-- handles of the process.
+--
+-- Throws an 'IOError' if the embedded stdlib fails to load or an export
+-- list names something that is not defined. Either one means the build
+-- is broken, not the user's program.
 newInterpreter :: IO Interpreter
 newInterpreter = do
   ports <- makeStandardPorts
@@ -108,7 +122,7 @@ newInterpreter = do
     nameDatum (LibName parts) = DList (map (DSymbol . Symbol) parts) Nothing
 
 -- | Run a whole program and return the last value or the rendered
--- error. Every SchemeError and any stray IO exception stops here. The
+-- error. Every 'SchemeError' and any stray IO exception stops here. The
 -- one thing let through is ExitCode, which exit throws on purpose.
 --
 -- On an error the form's dynamic extent is abandoned. The dynamic-wind
@@ -148,9 +162,9 @@ resetDyn rt saved = do
   writeIORef (rtDyn rt) saved
 
 
--- | runText, then write the result. This is what the repl and the golden
--- tests print. The text is forced before it is returned so a lazy error
--- cannot get out past the boundary.
+-- | 'runText', then write the result. This is what the repl and the
+-- golden tests print. The text is forced before it is returned so a
+-- lazy error cannot get out past the boundary.
 runTextForOutput :: Interpreter -> FilePath -> Text -> IO Text
 runTextForOutput interp name src =
   runText interp name src >>= \case
@@ -165,7 +179,9 @@ runTextForOutput interp name src =
   where
     forceText t = T.length t `seq` t
 
--- | iota run file.iota.
+-- | Read a file and hand it to 'runText' under its own path, which is
+-- what @iota run file.iota@ does. A file that cannot be read or is not
+-- UTF-8 gives a Left as well.
 runFile :: Interpreter -> FilePath -> IO (Either Text Value)
 runFile interp path = do
   r <- try (readSourceFile path)
@@ -173,7 +189,8 @@ runFile interp path = do
     Left (e :: SchemeError) -> Left <$> formatError e
     Right src -> runText interp path src
 
--- | A fresh interpreter and one program. For the tests.
+-- | A fresh interpreter and one program, through 'runTextForOutput'.
+-- For the tests.
 evalText :: Text -> IO Text
 evalText src = do
   interp <- newInterpreter

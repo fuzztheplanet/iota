@@ -1,20 +1,26 @@
 -- | The command line.
 --
 -- @
--- iota                    repl
--- iota repl               repl
--- iota FILE [ARG...]      run a script
--- iota run FILE [ARG...]  same, spelled out
--- iota eval EXPR          evaluate one expression and print it
--- iota --version
+-- iota                      start the repl
+-- iota repl                 the same, spelled out
+-- iota FILE [ARG...]        run a script
+-- iota run FILE [ARG...]    the same, spelled out
+-- iota eval EXPR            evaluate EXPR and print the value of its last form
+-- iota -V, iota --version   print the version and exit
+-- iota -h, iota --help      print the usage and exit
 -- @
 --
--- This is in the library rather than app/Main.hs so the tests can reach
--- 'parseCommand'.
+-- The reference for all of this, corner cases included, is the section
+-- \"The command line\" of the user's guide, docs\/guide.org. If the two
+-- disagree, fix this comment.
+--
+-- This is in the library rather than app\/Main.hs so the tests can reach
+-- 'parserInfo'. Test.CLI runs argument lists through it.
 module Iota.CLI
   ( main
   , Command (..)
   , parseCommand
+  , parserInfo
   ) where
 
 import Data.Text qualified as T
@@ -29,13 +35,22 @@ import System.Environment (withArgs)
 import System.Exit (exitFailure)
 import System.IO (hSetEncoding, stderr, stdin, stdout, utf8)
 
+-- | What the arguments asked for.
 data Command
-  = Repl
-  | -- | the script and the arguments it should see in @(command-line)@
+  = -- | No arguments, or the @repl@ subcommand.
+    Repl
+  | -- | The script and the arguments it should see in @(command-line)@
+    -- after its own name.
     Run FilePath [String]
-  | EvalExpr String
+  | -- | The source text given to the @eval@ subcommand. It may hold
+    -- several forms. They all run and the value of the last is printed.
+    EvalExpr String
   deriving stock (Eq, Show)
 
+-- | The subcommands, then a bare @FILE [ARG...]@, then nothing at all for
+-- the repl. This is only the part that produces a 'Command'. The version
+-- and help options and the forwarding of unknown options to the script
+-- are added in 'parserInfo', which is what 'main' and the tests run.
 parseCommand :: Parser Command
 parseCommand =
   hsubparser
@@ -63,19 +78,32 @@ versionOption =
     ("iota " <> showVersion version)
     (long "version" <> short 'V' <> help "Show the version and exit")
 
+-- | The whole command line parser, as 'main' runs it. 'parseCommand'
+-- plus @--version@ and @--help@, with unknown options forwarded.
+--
+-- In the bare @iota FILE ARG...@ form an option iota does not know is
+-- handed to the script. @--help@, @-h@, @--version@ and @-V@ are iota's
+-- own wherever they appear, and after the @run@ subcommand an unknown
+-- option is rejected. Everything after a @--@ goes to the script
+-- untouched in both forms.
+parserInfo :: ParserInfo Command
+parserInfo =
+  info
+    (parseCommand <**> versionOption <**> helper)
+    ( fullDesc
+        -- an unrecognised option after the script name belongs to the
+        -- script, not to optparse
+        <> forwardOptions
+        <> progDesc "An R7RS-small Scheme interpreter"
+        <> header "iota, a small Scheme"
+    )
+
+-- | Parse the arguments and do what they say. A script or an @eval@ that
+-- ends in an uncaught error prints the message on standard error and
+-- exits with status 1.
 main :: IO ()
 main = do
-  cmd <-
-    execParser $
-      info
-        (parseCommand <**> versionOption <**> helper)
-        ( fullDesc
-            -- an unrecognised option after the script name belongs to the
-            -- script, not to optparse
-            <> forwardOptions
-            <> progDesc "An R7RS-small Scheme interpreter"
-            <> header "iota, a small Scheme"
-        )
+  cmd <- execParser parserInfo
   -- UTF-8 for the standard streams whatever the locale says. Source files
   -- are read as UTF-8 as well, so this keeps the two consistent.
   mapM_ (`hSetEncoding` utf8) [stdin, stdout, stderr]

@@ -1,0 +1,48 @@
+;; dynamic-wind: a before thunk and an after thunk that run every time
+;; control enters or leaves the middle one, however it does so.
+
+(import (scheme base) (scheme write))
+
+(define (show . xs)
+  (for-each display xs)
+  (newline))
+
+(define (traced name thunk)
+  (dynamic-wind
+   (lambda () (show "  enter " name))
+   thunk
+   (lambda () (show "  leave " name))))
+
+;; A normal return.
+(show "1. normal return")
+(show "  result: " (traced 'a (lambda () 'done)))
+
+;; Leaving early through a continuation still runs the after thunk.
+(show "2. escape with call/cc")
+(show "  result: "
+      (call/cc
+       (lambda (escape)
+         (traced 'b (lambda () (escape 'escaped) 'not-reached)))))
+
+;; So does leaving because of an error.
+(show "3. escape with an error")
+(show "  result: "
+      (guard (e (#t (list 'caught (error-object-message e))))
+        (traced 'c (lambda () (error "failed inside")))))
+
+;; Continuations can be re-entered. Going back in runs the before
+;; thunk again, and leaving again runs the after thunk again.
+(show "4. re-entry")
+(define saved #f)
+(define count 0)
+
+(traced 'd
+        (lambda ()
+          (call/cc (lambda (k) (set! saved k)))
+          (set! count (+ count 1))
+          (show "  inside, pass " count)))
+
+(when (< count 3)
+  (saved 'again))
+
+(show "done after " count " passes")

@@ -6,3 +6,7 @@ cradle:
       component: "iota:exe:iota"
     - path: "test"
       component: "iota:test:iota-test"
+    - path: "test/embed"
+      component: "iota:test:iota-embed-example"
+    - path: "examples/haskell"
+      component: "iota:test:iota-embed-example"

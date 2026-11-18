@@ -1,10 +1,11 @@
 #+TITLE: How iota is put together
+#+DESCRIPTION: A map of the iota implementation: the pipeline from text to value, the CPS evaluator, macro hygiene, libraries, numbers and the run-time settings.
 #+SETUPFILE: setup.org
 
-[[file:index.org][↑ Back to the index]]
-
-These are notes to myself. Where they disagree with the code, the code
-is right and I need to fix this file.
+This page describes the inside of the interpreter: the stages a program
+goes through, the main data types, how the modules depend on each
+other, and the reasons for the larger design choices. Where it
+disagrees with the code, the code is right.
 
 * The pipeline
   :PROPERTIES:
@@ -17,28 +18,47 @@ is right and I need to fix this file.
 
   The reader turns text into a Datum, which is immutable. The expander
   turns one datum into Core, with macros expanded, derived forms
-  rewritten, every identifier resolved to a local slot or a global cell,
-  and bodies scanned for internal definitions. The compiler in Iota.Eval
-  turns Core into Code, a Haskell closure in continuation passing style,
-  and running that produces a Value. The printer takes it from there.
+  rewritten, every identifier resolved to a local variable or a global
+  cell, and bodies scanned for internal definitions. The compiler in
+  Iota.Eval turns Core into Code, a Haskell closure in continuation
+  passing style, and running that produces a Value. The printer takes
+  it from there.
 
-  Expansion happens once per top level form, before anything runs. A
-  macro inside a loop is expanded once. The old iota expanded on every
-  iteration and I never noticed how slow that made it until I measured.
+  A program is handled one top level form at a time. runText in
+  Iota.Interpreter first reads the whole text, so a read error anywhere
+  stops the program before its first form runs. Each form is then
+  expanded, compiled and run before the next one is looked at, because
+  a form may define a macro or import a library that the next one
+  needs.
+
+  Expansion happens once per top level form, before the form runs. A
+  macro use inside a loop is expanded once, however often the loop body
+  runs.
 
 * Datum and Value are different types
   :PROPERTIES:
   :CUSTOM_ID: datum-and-value-are-different-types
   :END:
 
-  The tutorials use one LispVal type for both syntax and values. I split
-  them. The reader stays almost pure, which makes the parser tests plain
-  equality checks, and the expander can pattern match on ordinary data.
+  Syntax and run-time objects have separate types, Datum and Value,
+  where the Write Yourself a Scheme tutorials use one LispVal type for
+  both. Keeping them apart has two effects. The reader is a pure
+  function from text to Datum, and Datum has structural equality, so
+  the reader tests are plain equality checks. And the expander pattern
+  matches on ordinary immutable data instead of following mutable
+  pairs.
 
   Datum has one constructor the reader never produces, DAlias, for an
-  identifier renamed by a macro expansion. See the section on hygiene.
-  datumToValue builds the mutable value a quoted datum stands for and
-  turns ~#n=~ and ~#n#~ labels into shared or cyclic structure.
+  identifier renamed by a macro expansion. See
+  [[#syntactic-environments-and-hygiene][Syntactic environments and hygiene]].
+
+  Three functions in Iota.Value convert between the two types.
+  datumToValue builds a fresh mutable value and is what read uses.
+  literalToValue does the same for quoted data and for literals in
+  program text, and marks the result constant, see
+  [[#identity-and-constants][Identity and constants]]. Both turn ~#n=~ and ~#n#~ labels into shared
+  or cyclic structure. valueToDatum goes the other way, for eval, and
+  rejects anything that is not data, such as a procedure or a port.
 
 * The evaluator runs in IO, in continuation passing style
   :PROPERTIES:
@@ -47,21 +67,22 @@ is right and I need to fix this file.
 
   Everything runs in plain IO. Pairs, strings, vectors and variable slots
   are mutable. Errors and exits are Haskell exceptions where that is the
-  simplest way to model them. What keeps it from being a toy is that
-  compiled code is in CPS:
+  simplest way to model them. Compiled code is in continuation passing
+  style:
 
   #+begin_src haskell
     type K    = Value -> IO Value
     type Code = Frame -> K -> IO Value
   #+end_src
 
-  Every Scheme call is a Haskell tail call with an explicit
-  continuation. Proper tail calls follow from that, and so does the fact
-  that non-tail recursion does not grow the Haskell stack, since pending
-  work is a chain of closures on the heap. Continuations are first class
-  and re-entrant. call/cc hands out the current K together with the
-  dynamic state. Applying it later replays the dynamic-wind transitions
-  and calls the closure again. Generators and coroutines work.
+  The reason is call/cc. A direct style evaluator in IO cannot re-enter
+  a continuation. With an explicit continuation every Scheme call is a
+  Haskell tail call, which gives proper tail calls, and pending work is
+  a chain of closures on the heap, so non-tail recursion does not grow
+  the Haskell stack. Continuations are first class and re-entrant.
+  call/cc hands out the current K together with the dynamic state.
+  Applying it later replays the dynamic-wind transitions and calls the
+  closure again. Generators and coroutines work.
 
   The dynamic state, which is the wind list and the handler stack, lives
   in an IORef in the Runtime. Anything that changes it saves the old
@@ -69,9 +90,140 @@ is right and I need to fix this file.
   Invoking a continuation installs whatever state it captured.
 
   The cost is that deep non-tail recursion keeps every pending
-  continuation alive, and the generational collector keeps copying them.
-  The executable runs with a 64 MB nursery, which makes this mostly go
-  away.
+  continuation alive on the heap, where the garbage collector has to
+  copy it. [[#run-time-settings-and-measurements][Run-time settings and measurements]] has figures.
+
+* Core and the compile step
+  :PROPERTIES:
+  :CUSTOM_ID: core-and-the-compile-step
+  :END:
+
+  Core, declared in Iota.Types, is the whole language the evaluator
+  knows. It has twelve constructors: constants, references and
+  assignments to local and global variables, top level definition, if,
+  lambda, sequence, application, let and letrec*. Everything else is
+  gone by the time Core exists. A named let is a CLetrec holding one
+  CLambda, let* is nested CLet, letrec and letrec* are both CLetrec, a
+  body with internal definitions is a CLetrec around its expressions,
+  and the derived forms have been rewritten into these. Names are gone
+  too. A variable is a LocalVar or a GlobalCell.
+
+  compile takes the Runtime, a Scope and a Core term and returns Code.
+  The Scope is the chain of frames as it will exist at run time, a list
+  of lists of LocalVar, innermost first. CLambda, CLet and CLetrec each
+  add one frame. A reference to a local variable is resolved against
+  the Scope once, at compile time, to a depth and an index. At run time
+  frameAt follows that many parent links of the Frame and reads the
+  slot. Nothing is looked up by name while a program runs.
+
+  #+begin_src haskell
+    data Frame = Frame (IOVector Value) Frame | NoFrame
+  #+end_src
+
+  A global variable compiles to a read of the IORef in its cell. A slot
+  or a cell that still holds Undefined raises an unbound variable
+  error. That covers a global that was never defined and a letrec
+  variable used before its initialiser has run. Arguments are evaluated
+  left to right. Applications with up to three arguments have their own
+  cases, which skip the accumulator the general case uses.
+
+  Every call goes through applyK, which is also the only place where
+  arity is checked. What it does depends on the procedure:
+
+  - Primitive :: Haskell code from arguments to a value. applyK runs it
+    inside try. A result goes to the continuation. A SchemeError goes
+    to raiseError, see [[#errors][Errors]].
+  - PrimitiveK :: Haskell code that also receives the continuation and
+    is responsible for calling it. apply, call/cc, dynamic-wind, map,
+    eval and the other procedures that call back into Scheme or change
+    the dynamic state are of this kind.
+  - Closure :: applyK allocates a frame for the arguments, with one
+    more slot for the list of rest arguments if the lambda has a rest
+    parameter, links it to the frame the closure was created in and
+    runs the body with the continuation it was given. That continuation
+    is passed on unchanged, so a call in tail position adds nothing to
+    it.
+  - Continuation :: applyK runs the dynamic-wind transitions between
+    the current wind list and the captured one, installs the captured
+    dynamic state and calls the captured K. The current continuation is
+    dropped.
+  - Parameter :: called with no arguments, it reads the parameter's
+    cell.
+
+  Applying anything else raises a "not applicable" error.
+
+  The entry point is runTopK in Iota.Expand. It records the source
+  location of the form, expands it with expandTop, compiles the result
+  with an empty Scope and runs the Code with NoFrame and a continuation
+  that goes on to the next top level form.
+
+* A worked example
+  :PROPERTIES:
+  :CUSTOM_ID: a-worked-example
+  :END:
+
+  This is what happens to one expression typed at the repl:
+
+  #+begin_src scheme
+    (let ((n 20)) (when (> n 0) (+ n 22)))   ; => 42
+  #+end_src
+
+  Read. The reader returns one Datum. Lists are DList with an optional
+  dotted tail, and an exact integer is an Exact rational:
+
+  #+begin_src haskell
+    DList
+      [ DSymbol "let"
+      , DList [DList [DSymbol "n", DNumber (Exact 20)] Nothing] Nothing
+      , DList
+          [ DSymbol "when"
+          , DList [DSymbol ">", DSymbol "n", DNumber (Exact 0)] Nothing
+          , DList [DSymbol "+", DSymbol "n", DNumber (Exact 22)] Nothing
+          ]
+          Nothing
+      ]
+      Nothing
+  #+end_src
+
+  Expand. expandTop resolves the head of the form. In the repl's
+  environment let denotes the keyword let, which is not a definition,
+  so the form is an expression and goes to letForm. letForm expands the
+  initialiser 20 to a constant in the outer environment, makes a
+  LocalVar for n, binds it in a new rib and expands the body under that
+  rib. The head of the body's only form is the keyword when, a derived
+  form. rewrite turns it into (if (> n 0) (begin (+ n 22))), in which
+  if and begin are aliases into the implementation environment, and the
+  result is expanded again. The identifiers > and + resolve to global
+  cells that the repl's environment imported, and n to the LocalVar.
+  With n standing for the LocalVar, > and + for the cells and the
+  numbers for Num values, the Core is:
+
+  #+begin_example
+    CLet [(n, CConst 20)]
+      (CSeq
+        [ CIf (CApp (CGlobalRef >) [CLocalRef n, CConst 0])
+              (CSeq [CApp (CGlobalRef +) [CLocalRef n, CConst 22]])
+              (CConst Unspecified)
+        ])
+  #+end_example
+
+  Compile. The CLet becomes code that evaluates the initialiser,
+  allocates a frame with one slot on top of the current frame and runs
+  the body in it. Inside the body the Scope is one frame holding n, so
+  CLocalRef n becomes "depth 0, index 0". A CSeq of one element compiles
+  to that element. Both applications have two arguments and use the two
+  argument case.
+
+  Run. The code is called with NoFrame and the continuation runText
+  supplied, which returns the value it is given. The frame is created
+  with 20 in its slot. The test reads the cell of >, reads slot 0 and
+  takes the constant 0, and applyK, finding a Primitive, checks the
+  arity, runs it and passes #t on. CIf chooses the first branch and
+  hands it the continuation of the whole expression, so (+ n 22) is a
+  tail call. applyK runs the primitive + and gives the exact number 42
+  to that continuation.
+
+  Print. The repl passes the value to writeText and prints 42.
 
 * Errors
   :PROPERTIES:
@@ -79,11 +231,17 @@ is right and I need to fix this file.
   :END:
 
   A Haskell primitive that fails throws a SchemeError. applyK catches it
-  at the call site and hands the matching condition object to the
-  current Scheme handler, with the continuation of the failing call. So
-  a type error in car looks like an ordinary raise from the Scheme side.
-  When no handler is installed the error escapes to the boundary in
-  Iota.Interpreter.runText, which prints it.
+  at the call site. If a Scheme handler is installed, raiseError turns
+  the error into the matching condition object and raises that with the
+  continuation of the failing call. So a type error in car looks like
+  an ordinary raise from the Scheme side. If no handler is installed
+  the SchemeError is thrown on and reaches the boundary in
+  Iota.Interpreter.runText, which renders it as text.
+
+  A PrimitiveK is not run inside try. It has to report Scheme level
+  errors through raiseError or guardIO, which do the same conversion.
+  An exception it throws instead passes the Scheme handlers by and goes
+  straight to the boundary.
 
   with-exception-handler, raise, raise-continuable and guard are
   implemented directly on the handler stack. A handler runs with the
@@ -91,8 +249,8 @@ is right and I need to fix this file.
   the raise point. raise raises a second exception if the handler
   returns. guard escapes to its own continuation before trying its
   clauses, and if none matches it goes back into the dynamic environment
-  of the raise and raises again from there. That last part is what
-  section 4.2.7 of the report describes and it is easy to skip.
+  of the raise and raises again from there, as section 4.2.7 of the
+  report specifies.
 
   ExitCode is the one exception that goes all the way up on purpose.
   exit unwinds every dynamic-wind first. emergency-exit does not.
@@ -108,14 +266,24 @@ is right and I need to fix this file.
   table of a library or program. An identifier denotes a local variable,
   a global cell, a core or auxiliary keyword, or a macro.
 
+  A global cell holds a name, the id of the environment that owns it
+  and an IORef with the value. A reference to a name that is not bound
+  yet gets a pending cell, which holds Undefined and is not a binding.
+  A later define of the name adopts the pending cell, so code expanded
+  before the definition and code expanded after it share one cell. That
+  is how top level procedures can refer to each other before both are
+  defined.
+
   syntax-rules is hygienic by renaming. Every identifier a template
   introduces becomes a fresh DAlias that remembers the environment the
-  macro was defined in. Resolving an alias first looks for a binding of
-  the alias itself, which is what a let produced by the same expansion
-  creates. Otherwise it resolves the original identifier where the macro
-  was defined. A template's tmp cannot capture the user's tmp, and a
-  template's list still means list if the use site has rebound it.
-  Literals like else are compared with free-identifier=?.
+  macro was defined in. Within one expansion the same template
+  identifier always becomes the same alias. Resolving an alias first
+  looks for a binding of the alias itself, which is what a let produced
+  by the same expansion creates. Otherwise it resolves the original
+  identifier where the macro was defined. A template's tmp cannot
+  capture the user's tmp, and a template's list still means list if the
+  use site has rebound it. Literals like else are compared with
+  free-identifier=?.
 
   The derived forms of chapter 4.2 are rewritten inside the expander,
   roughly as chapter 7.3 does it. The identifiers those rewrites
@@ -128,20 +296,37 @@ is right and I need to fix this file.
   :END:
 
   The implementation environment holds every primitive, every core
-  keyword and everything defined in lib/iota/stdlib.iota. The standard
-  libraries are views onto it. Iota.Library lists what each one exports,
-  following Appendix A, and startup checks that every listed name
-  exists. A define-library gets a fresh global environment, runs its
-  declarations in order and registers its exports. import copies
-  denotations into the importing environment, sharing the variable
-  cells, after applying only, except, prefix and rename. A library that
-  is not registered is looked up as a/b.iota next to the
-  importing file and then on IOTA_LIBRARY_PATH.
+  keyword and everything defined in lib/iota/stdlib.iota, which is
+  embedded in the binary when it is built and run at startup. The
+  standard libraries are views onto it. Iota.Library lists what each
+  one exports, following Appendix A, and startup checks that every
+  listed name exists. A define-library gets a fresh global environment,
+  runs its declarations in order and registers its exports. import
+  copies denotations into the importing environment, sharing the
+  variable cells, after applying only, except, prefix and rename.
+
+  A library that is not registered is looked for in a file. The name
+  (a b) becomes the relative path a/b.iota, and loadLibrary in
+  Iota.Expand.Library tries it in these directories, in this order:
+
+  1. The directory of the file that contains the import. For the repl,
+     for iota eval, and for eval and environment called from a program,
+     that is the current working directory.
+  2. Each directory in IOTA_LIBRARY_PATH, a colon separated list that
+     is read once, when the interpreter is created.
+  3. The directory lib under the current working directory.
+
+  The first file that exists is used. It may hold nothing but
+  define-library forms, every one of which is registered, and one of
+  them has to define the library that was asked for. While the file is
+  being loaded its own directory takes the place of the importing
+  file's, for the imports and includes inside it.
 
   A program environment, meaning the repl or a script, starts with every
   standard library and (iota extras) imported. Defining a name the
   program imported shadows it with the program's own cell. Assigning an
-  imported binding is a syntax error.
+  imported binding is a syntax error. The owner id in each cell is what
+  tells the two cases apart.
 
 * The standard ports
   :PROPERTIES:
@@ -159,11 +344,14 @@ is right and I need to fix this file.
   :CUSTOM_ID: identity-and-constants
   :END:
 
-  Pairs, vectors, bytevectors, strings, records, ports, closures and
-  continuations each carry an Int identity from Iota.Counter. eqv?
-  compares it. equal? uses it for the union-find fallback that lets
-  cyclic comparison terminate. write uses it to find the cycles, or for
-  write-shared the shared structure, that need ~#n=~ and ~#n#~ labels.
+  Pairs, vectors, bytevectors, strings, records, ports, closures,
+  continuations and parameters each carry an Int identity from
+  Iota.Counter. eqv? compares it. equal? first tries a plain recursive
+  comparison with a budget of 100,000 steps. When the budget runs out
+  it starts again with a union-find over the identities, which is what
+  lets it terminate on cyclic data. write uses the identities to find
+  the cycles, or for write-shared the shared structure, that need ~#n=~
+  and ~#n#~ labels.
 
   The sign of the identity says whether the object is a literal.
   datumToValue builds mutable data, for read. literalToValue builds
@@ -177,11 +365,13 @@ is right and I need to fix this file.
   :END:
 
   A Number is an exact Rational, an inexact Double, or a Complex made of
-  two of those. makeRectangular is the only constructor for the complex
-  case. It collapses an exact zero imaginary part to the real part and
-  makes both parts inexact when either is, so the rest of Iota.Number
-  can pattern match on Exact and Inexact and only check for Complex at
-  the top of an operation. The arithmetic on complex numbers is written
+  two of those. makeRectangular is how a complex number is built. It
+  collapses an exact zero imaginary part to the real part and makes
+  both parts inexact when either is, so the rest of Iota.Number can
+  pattern match on Exact and Inexact and only check for Complex at the
+  top of an operation. The two other places that apply the Complex
+  constructor directly, toInexact and negate', keep both properties.
+  The arithmetic on complex numbers is written
   in terms of the real arithmetic, so contagion and exact division come
   along without extra work. The transcendental functions go through
   Data.Complex, and a real argument the real version cannot handle,
@@ -196,19 +386,28 @@ is right and I need to fix this file.
   A string is a mutable unboxed vector of characters. string-ref,
   string-set! and string-length are O(1) and string-copy! is O(n). The
   read-only primitives convert to Text first with stringText. That is
-  O(n), but those operations were O(n) already.
+  O(n), the same order as those operations themselves.
 
 * Source locations
   :PROPERTIES:
   :CUSTOM_ID: source-locations
   :END:
 
-  The reader can attach the position of each top level form. The
-  interpreter records the location of the form it is running, and the
-  error boundary prefixes an error from a file with it. Locations are
-  per top level form, not per expression. I did not want position
-  wrappers in Datum that the expander would have to look through
-  everywhere. This is good enough for now.
+  readDatumsLocated attaches a file, a line and a column to each top
+  level form. runTopK stores the location of the form it is about to
+  run in the Runtime, and the error boundary puts it in front of an
+  error message when the text came from a file.
+
+  Locations are per top level form, not per expression. Datum carries
+  no positions, so the expander never has to look through position
+  wrappers and the reader's output stays plain data. The price is the
+  coarse grain: an error inside a procedure is reported at the top
+  level form whose evaluation called it.
+
+  The forms that load runs and the forms of a library file have no
+  position, and running one clears the stored location. An error inside
+  a loaded or imported file, or later in the same top level form after
+  a load or an import, is therefore reported without a location.
 
 * The error boundary and the dynamic state
   :PROPERTIES:
@@ -221,19 +420,188 @@ is right and I need to fix this file.
   before the form. exit has already unwound by the time its ExitCode
   arrives, and emergency-exit must not unwind, so both skip this step.
 
+  The boundary also stops Haskell exceptions that are not a SchemeError,
+  such as a stack overflow, and reports them the same way. Scheme
+  handlers never see those.
+
+* Run-time settings and measurements
+  :PROPERTIES:
+  :CUSTOM_ID: run-time-settings-and-measurements
+  :END:
+
+  The executable stanza of iota.cabal sets three things for GHC's
+  run-time system:
+
+  - ~-threaded~ links the threaded run-time system.
+  - ~-rtsopts~ lets a user pass run-time system options between ~+RTS~
+    and ~-RTS~ on the command line, as in
+    ~iota prog.iota +RTS -A1m -s -RTS~. The run-time system removes
+    them, so the program does not see them in (command-line).
+  - ~-with-rtsopts=-K256m~ limits the Haskell stack to 256 MB.
+
+  The allocation area, the nursery of the generational collector, is
+  left at GHC's default of 4 MB. The measurements below are the reason:
+  a larger one was slower.
+
+  Scheme calls do not use the Haskell stack. A non-tail recursion a
+  million calls deep still runs with ~+RTS -K1m -RTS~. The stack is used
+  by recursive Haskell code such as the printer's walk over nested
+  data. Writing a list nested two million levels deep works with the
+  built-in limit and fails with "stack overflow" under ~-K64m~. When
+  the program itself calls write, that error comes from the boundary
+  and cannot be caught by guard. When the value is the result that
+  iota eval prints, the printing happens outside the boundary and the
+  Haskell runtime reports the overflow itself.
+
+  The figures below were measured with GHC 9.6.7 at cabal's default
+  optimisation level (~-O1~) on x86-64 Linux, with a dynamically linked
+  build, and come from the run-time system's own report
+  (~+RTS -s -RTS~). The counts are the same on every run. The times are
+  CPU times, medians of twelve runs with the nursery sizes taken in
+  turn, on a machine that was doing other work as well. Read them as a
+  comparison, not as absolute figures.
+
+  Deep recursion. This program makes one million nested non-tail calls
+  and allocates 2.2 GB in total:
+
+  #+begin_src sh
+    iota eval "(define (loop n) (if (= n 0) 0 (+ 1 (loop (- n 1))))) (loop 1000000)" +RTS -s -RTS
+  #+end_src
+
+  | Nursery                    | Minor collections | Major collections | Copied | Memory in use | CPU time |
+  |----------------------------+-------------------+-------------------+--------+---------------+----------|
+  | ~-A4m~, the default        |               514 |                 8 | 142 MB | 68 MiB        | 1.2 s    |
+  | ~-A64m~                    |                28 |                 5 | 110 MB | 112 MiB       | 1.5 s    |
+  | ~-A1m~                     |              2084 |                 8 | 133 MB | 54 MiB        | 0.9 s    |
+
+  Garbage collection took between 18 and 21 percent of the CPU time at
+  every size. At ten million calls, in single runs, the default nursery
+  did 5130 minor and 11 major collections, copied 1.3 GB, used 474 MiB
+  and took 11.2 s. With ~-A64m~ there were 313 minor and 9 major
+  collections, 1.5 GB copied, 784 MiB in use and 14.7 s.
+
+  Tail calls. The same count written as a loop in tail position,
+  (define (loop n) (if (= n 0) 'done (loop (- n 1)))) with one million
+  iterations, allocates 1.6 GB, about 1.6 kB per iteration. The
+  largest amount of live data the collector saw was 0.3 MB. Garbage
+  collection took 0.007 s with the default nursery, 0.003 s with
+  ~-A64m~ and 0.011 s with ~-A1m~. The whole run took 0.66 s with the
+  default nursery, 0.89 s with ~-A64m~ and 0.52 s with ~-A1m~.
+
+  Startup. Creating an interpreter loads the Scheme half of the
+  standard library. Starting iota and evaluating 1 allocates 35 MB.
+  With the default nursery that takes 0.02 s and the run-time system
+  holds 6 MiB. With ~-A64m~ it takes 0.04 s and 67 MiB (medians of 25
+  runs).
+
+  A 64 MB nursery cuts the number of collections by a factor of about
+  sixteen, but it was the slowest of the three sizes on every one of
+  these workloads and takes 60 MB more from the start. The 1 MB
+  nursery was the fastest. iota keeps GHC's default and does not tune
+  for three small programs. A program that gains from another size can
+  ask for it with ~+RTS -A1m -RTS~.
+
 * Module dependencies
   :PROPERTIES:
   :CUSTOM_ID: module-dependencies
   :END:
 
-  #+begin_example
-    Types <- Counter, Number <- Value <- Syntax <- SyntaxRules
-      ^                         ^
-    Reader                   Printer, Eval <- Library <- Expand.Common <- Expand.Derived
-                                                                 ^         Expand.Library
-                                                                 +-------- Expand
-                                                                              ^
-                                                                       Primitives/*
-                                                                              ^
-                                                                     Interpreter <- Repl, CLI
-  #+end_example
+  The modules form layers. Each item below lists modules that import
+  project modules only from the items above it. The executable in
+  app/Main.hs calls Iota.CLI.main and nothing else.
+
+  1. Iota.Types and Iota.Counter import nothing from the project. Types
+     holds the data declarations that refer to each other in a circle,
+     which is most of them: environments, values, macros and errors.
+     Separate modules would need hs-boot files. Counter is the supply
+     of identities.
+  2. Iota.Number is the arithmetic and needs Types only.
+  3. Iota.Reader and Iota.Value. The reader needs Number to build
+     numeric literals. Value has the constructors and accessors for the
+     mutable objects and needs Number and Counter.
+  4. Iota.Printer, Iota.Syntax, Iota.Eval and Iota.Library, and the
+     primitive tables for data: Iota.Primitives.Numeric, Pairs,
+     Predicates, Strings and Vectors. All of these stand on Value.
+     Printer and Primitives.Numeric also import Reader for its number
+     parser: the printer has to know whether a symbol would read back
+     as a number, and string->number is that parser. Eval sees Core and
+     Value and knows nothing about the expander. Library holds the
+     registry and the import set logic and knows nothing about files:
+     the function that finds a library by name is passed in.
+  5. Iota.SyntaxRules, on Syntax, and Iota.Primitives.IO, on Printer
+     and Reader.
+  6. Iota.Expand.Common, the parts the expander modules share, on
+     Reader, Syntax and SyntaxRules.
+  7. Iota.Expand.Derived and Iota.Expand.Library, both on
+     Expand.Common. Expand.Library also needs Library.
+  8. Iota.Expand, on the three modules before it and on Eval. This is
+     where expander and evaluator meet: runTopK expands a form, compiles
+     it and runs it. A library body has to be run while the importing
+     program is being expanded, which would make Expand.Library and
+     Expand import each other. Instead the function that runs forms
+     travels in the expander context as its Runner.
+  9. Iota.Primitives.Control, on Eval and Expand, because eval, load
+     and environment expand code at run time.
+  10. Iota.Primitives, which joins the seven primitive tables.
+  11. Iota.Interpreter builds the implementation environment from the
+      keywords, the primitives and the embedded stdlib, registers the
+      standard libraries and is the error boundary.
+  12. Iota.Repl, and Iota, which re-exports the types, the interpreter
+      and the reader and printer entry points.
+  13. Iota.CLI, on Interpreter and Repl.
+
+* Glossary
+  :PROPERTIES:
+  :CUSTOM_ID: glossary
+  :END:
+
+  - alias :: An identifier that a syntax-rules template or a derived
+    form rewrite introduced (DAlias). It records the identifier it
+    stands for and the syntactic environment to resolve it in.
+  - Code :: Compiled Core: a Haskell function from a frame and a
+    continuation to a value.
+  - constant :: An object built from a literal or quoted datum in
+    program text. The mutators refuse it.
+  - continuation (K) :: A function from a value to the final result,
+    standing for the rest of the computation. A continuation object, as
+    call/cc makes it, is a K together with a dynamic state.
+  - Core :: The language after expansion, with no macros, no derived
+    forms and no names.
+  - Datum :: What the reader produces: immutable syntax.
+  - denotation :: What an identifier means in a syntactic environment:
+    a local variable, a global cell, a keyword or a macro.
+  - dynamic state :: The wind list and the handler stack. It is held in
+    the Runtime, captured by call/cc and reinstalled when a continuation
+    is called.
+  - error boundary :: runText in Iota.Interpreter. No Scheme error gets
+    past it.
+  - frame :: The run-time record for one call of a closure or one entry
+    into a let or letrec: a vector of slots and a link to the enclosing
+    frame.
+  - global cell :: The storage of one global variable, shared by every
+    environment that imports the binding.
+  - global environment :: The table from names to denotations of one
+    library or one program.
+  - handler stack :: The exception handlers currently installed,
+    innermost first.
+  - identity :: The Int from Iota.Counter that a compound object
+    carries, used by eqv?, equal? and write.
+  - implementation environment :: The global environment that holds
+    every keyword, every primitive and the Scheme half of the standard
+    library. The standard libraries are export lists over it.
+  - literal id :: The negative identity that marks a constant.
+  - pending cell :: A cell made for a global name that is referenced
+    before it is defined. The definition adopts it.
+  - rib :: One lexical contour in a syntactic environment: a mutable
+    table from identifiers to denotations.
+  - Runtime :: The shared state of one interpreter: the dynamic state,
+    the implementation environment, the library registry, the
+    interaction environment, the standard ports, the library search
+    path and the current source location.
+  - Scope :: The compile-time picture of the frame chain, used to turn a
+    local variable into a depth and an index.
+  - syntactic environment (SynEnv) :: A list of ribs, innermost first,
+    over a global environment.
+  - Value :: A run-time Scheme object.
+  - wind frame :: One dynamic-wind that is in effect, with its before
+    and after thunks. The wind list holds them innermost first.

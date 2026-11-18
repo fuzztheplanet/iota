@@ -1,10 +1,15 @@
 # Export settings shared by every page under docs/. Pages pull this in with
 # #+SETUPFILE: setup.org. It is not a page and is not exported on its own.
+# The navigation bar and the footer are not here: export.el builds them.
 # Source blocks are highlighted in the browser by Prism. A new block language
-# needs its Prism component below, with its integrity hash.
-#+OPTIONS: toc:3 num:t H:4 ^:{} tex:verbatim timestamp:nil html-postamble:nil
+# needs its Prism component below, with its integrity hash. There are two
+# Prism themes, one for a light and one for a dark colour scheme, and the
+# browser picks between them the same way it picks the colours further down.
+#+OPTIONS: toc:3 num:t H:4 ^:{} tex:verbatim timestamp:nil html5-fancy:t
+#+HTML_DOCTYPE: html5
 #+LANGUAGE: en
-#+HTML_HEAD: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+#+HTML_HEAD: <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-light.min.css" integrity="sha384-wfpYO27rpeJ2ZOVwfG6TuU4ahxLdxLmGXK/BiSH98jJye0CNNWTOM+kA8rP8Yg4p" crossorigin="anonymous">
+#+HTML_HEAD: <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-one-dark.min.css" integrity="sha384-v9GL8Hq3ahE75oFR1DFNlW6Um5pHhFd4zZ1GhlseYYdm7vQJnxZo27sXBkHLcv3O" crossorigin="anonymous">
 #+HTML_HEAD: <script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
 #+HTML_HEAD: <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous"></script>
 #+HTML_HEAD: <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-scheme.min.js" integrity="sha384-/rCp5BzL+04pYmfGht9VvqwqjzXHkjdUYJem8MrTgf2MOM5lAErmsxzZiw1kr4Kr" crossorigin="anonymous"></script>
@@ -38,5 +43,28 @@
 #+HTML_HEAD:     h.appendChild(a);
 #+HTML_HEAD:   });
 #+HTML_HEAD: });</script>
-#+HTML_HEAD: <style> a.heading-link{margin-left:.4em;font-size:.7em;opacity:0;text-decoration:none;vertical-align:middle;transition:opacity .15s} h2:hover a.heading-link,h3:hover a.heading-link,h4:hover a.heading-link{opacity:.6} a.heading-link:hover{opacity:1 !important} </style>
-#+HTML_HEAD: <style> body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:#1a1a1a} h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2} pre.src,pre.example{overflow-x:auto;background:#f6f8fa;padding:.6em;border-radius:4px;margin:1.2em} pre.src code{background:none;padding:0;font-size:.8125rem} table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:.25em .6em} code{background:#f0f0f0;padding:0 .25em;border-radius:3px} blockquote{border-left:3px solid #ccc;margin-left:0;padding-left:1em;color:#444} a{color:#0645ad} </style>
+#+HTML_HEAD: <style>
+#+HTML_HEAD: /* Colours. The dark set applies when the browser asks for a dark scheme. */
+#+HTML_HEAD: :root{color-scheme:light dark;--bg:#fff;--fg:#1a1a1a;--muted:#5a5a5a;--line:#ccc;--code-bg:#f0f0f0;--pre-bg:#f6f8fa;--link:#0645ad}
+#+HTML_HEAD: @media (prefers-color-scheme: dark){:root{--bg:#16181c;--fg:#d6d9de;--muted:#9aa1ab;--line:#3b4048;--code-bg:#2b2f37;--pre-bg:#282c34;--link:#82b4f5}}
+#+HTML_HEAD: body{max-width:52em;margin:2em auto;padding:0 1em;line-height:1.55;font-family:Georgia,"Times New Roman",serif;color:var(--fg);background:var(--bg)}
+#+HTML_HEAD: h1,h2,h3,h4{font-family:-apple-system,Helvetica,Arial,sans-serif;line-height:1.2}
+#+HTML_HEAD: a{color:var(--link)}
+#+HTML_HEAD: pre,pre.src,pre.example{overflow-x:auto;color:var(--fg);background:var(--pre-bg);border-color:var(--line);padding:.6em;border-radius:4px;margin:1.2em}
+#+HTML_HEAD: pre.src code{background:none;padding:0;font-size:.8125rem}
+#+HTML_HEAD: pre.src:before{color:var(--muted);background:var(--pre-bg)}
+#+HTML_HEAD: code{background:var(--code-bg);padding:0 .25em;border-radius:3px}
+#+HTML_HEAD: table{border-collapse:collapse;margin:1em 0}
+#+HTML_HEAD: th,td{border:1px solid var(--line);padding:.25em .6em}
+#+HTML_HEAD: blockquote{border-left:3px solid var(--line);margin-left:0;padding-left:1em;color:var(--muted)}
+#+HTML_HEAD: /* The navigation bar and the footer that export.el adds. */
+#+HTML_HEAD: nav.site-nav{display:flex;flex-wrap:wrap;gap:.3em 1.1em;padding-bottom:.6em;margin-bottom:2em;border-bottom:1px solid var(--line);font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:.95rem}
+#+HTML_HEAD: nav.site-nav a{text-decoration:none}
+#+HTML_HEAD: nav.site-nav a:hover{text-decoration:underline}
+#+HTML_HEAD: nav.site-nav a[aria-current="page"]{color:var(--fg);font-weight:600}
+#+HTML_HEAD: #postamble{margin-top:3em;padding-top:.6em;border-top:1px solid var(--line);color:var(--muted);font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:.85rem}
+#+HTML_HEAD: /* The pilcrow the script above puts after each heading. */
+#+HTML_HEAD: a.heading-link{margin-left:.4em;font-size:.7em;opacity:0;text-decoration:none;vertical-align:middle;transition:opacity .15s}
+#+HTML_HEAD: h2:hover a.heading-link,h3:hover a.heading-link,h4:hover a.heading-link{opacity:.6}
+#+HTML_HEAD: a.heading-link:hover{opacity:1 !important}
+#+HTML_HEAD: </style>

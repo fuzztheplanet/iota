@@ -7,6 +7,11 @@ module Iota.Primitives.Pairs
 import Iota.Types
 import Iota.Value
 
+-- | Pairs, lists and the three equivalence predicates. @member@ and
+-- @assoc@ are the two-argument versions here, and the stdlib redefines
+-- them to take the optional comparator. The six searches give up with
+-- an error after ten million steps, so a circular list cannot hang
+-- them.
 pairPrimitives :: [(Symbol, Value)]
 pairPrimitives =
   [ prim "cons" (Exactly 2) $ \case

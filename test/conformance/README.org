@@ -1,0 +1,142 @@
+#+TITLE: R7RS conformance run
+
+This directory runs an external R7RS-small test suite against iota: the
+file =tests/r7rs-tests.scm= of [[https://github.com/ashinn/chibi-scheme][chibi-scheme]]. It is separate from
+=make test=, needs the network the first time, and is the evidence
+behind the conformance figures in =docs/r7rs-coverage.org=.
+
+* Running it
+
+From the top of the repository:
+
+#+begin_src sh
+make conformance
+#+end_src
+
+That builds iota and runs =test/conformance/run.sh= on the executable.
+=make check= runs it too. The script can also be given an executable
+directly, as in ~test/conformance/run.sh "$(cabal list-bin iota)"~ or
+~IOTA=/path/to/iota test/conformance/run.sh~. It needs
+=curl=, =sha256sum= and the usual POSIX tools. It prints one line per
+group, one line per failing test and the totals, and then compares the
+totals and the failing tests with =expected-failures.txt=.
+
+| Exit status | Meaning                                                        |
+|-------------+----------------------------------------------------------------|
+|           0 | the totals and the failures are exactly the expected ones      |
+|           1 | the totals differ, a test newly fails or newly passes, or a    |
+|             | workaround is no longer needed. The script says which          |
+|           2 | the suite could not be fetched, prepared or run to its end, or |
+|             | the output of the run does not add up                          |
+
+* Where the suite comes from
+
+The suite is not in this repository. It belongs to chibi-scheme,
+copyright Alex Shinn, under a three-clause BSD licence (the =COPYING=
+file of that project). =run.sh= downloads it into =.cache/= here, which
+is ignored by git, at one pinned commit and checks its SHA-256 before
+using it. =IOTA_CONFORMANCE_CACHE= names another directory.
+
+The pin is the commit that last changed the file when this was set up:
+
+| Commit  | =18e561eea6f219b4676f45b522591979c923740f=                         |
+| SHA-256 | =c1ef92910e70d469745a7b779658796767c1f97f7fea16a190305e396685d779= |
+
+* The files
+
+  - =run.sh=, the driver.
+  - =chibi/test.iota=, the library the suite imports as =(chibi test)=.
+    It is written for iota from the interface the suite uses and shares
+    no code with chibi's library of that name.
+  - =expected-failures.txt=, what a run must report: the number of tests
+    and the number that pass, and then the tests iota is known to fail,
+    each with a class and a note.
+
+* How a test is judged
+
+=chibi/test.iota= follows what chibi's library documents. =(test
+expected expr)= passes when the two values are =equal?=, or when the
+expected value is an inexact real and the result is a real within 1e-5
+of it, relative to the larger of the two, or absolute when one of them
+is zero. An exact result is accepted where an inexact one is expected.
+A NaN or an infinity is never within that tolerance of anything, so it
+passes only where =equal?= says it is the expected value. Complex
+numbers are compared part by part. =test-values= compares every value
+that way, =test-assert= wants a true value and =test-error= wants any
+raised object. A test that raises counts as a failure and the run goes
+on.
+
+A failing test is identified by three things: its group, its name (the
+expression as written, unless the test form gives a name), and its
+number among the tests of that name in the group. The number is there
+because the suite's own macros expand into many tests with the same
+text, such as =(values z)=.
+
+* What the script checks
+
+Before it compares anything, =run.sh= makes sure the output of the run
+adds up: iota exited with status 0, every line is one of the three
+kinds =chibi/test.iota= prints, there is one line of totals and it is
+the last line, the number of failure lines is the number of failures in
+the totals, and the per-group counts sum to the totals. If not, it
+stops with status 2.
+
+Then it compares two things with =expected-failures.txt=, and exits
+with status 1 if either differs:
+
+  - The totals, on the =tests= and =passed= lines at the top of that
+    file. They are pinned because the list of failures would not show a
+    change, to the suite or to =chibi/test.iota=, that makes tests
+    disappear.
+  - The failing tests.
+
+* The two workarounds
+
+iota reads a whole file before running any of it, and expands a whole
+top level form before running any of that. Two places in the suite
+would therefore stop the run before its first test. =run.sh= edits a
+copy of the suite with =sed= to get past them, and reports both.
+
+  1. The reader rejects a radix prefix inside a bytevector literal, as
+     in =#u8(#x41 #x42 #x43)=. Eight tests of =utf8->string= and
+     =string->utf8= are written that way. Their bytes are rewritten in
+     decimal and the tests run.
+  2. The expander rejects a =syntax-rules= form whose ellipsis is also
+     in the literals list (lines 595 to 600 of the suite). The form is
+     deleted and its one test is counted as a failure. It is included
+     in the totals the script prints and compares.
+
+* Updating the pin and the recorded totals
+
+Change =commit= and =sha256= at the top of =run.sh=, then run it. The
+script stops if the lines the second workaround deletes have moved; fix
+the line numbers there. Then go through what it reports:
+
+  - Under "Totals that differ" it prints the expected and the actual
+    number of tests and of passes. Once the difference is explained by
+    the tests the new version of the suite adds or drops, put the actual
+    numbers on the =tests= and =passed= lines of
+    =expected-failures.txt=. They are the two numbers of the summary
+    line the script prints, as in "1234 tests: 1206 passed, 28 failed".
+    Each line is the name, a tab and the number.
+  - Under "Failing, but not in expected-failures.txt" and "In
+    expected-failures.txt, but no longer failing" it prints the tests
+    that moved, in the form the file wants. Add or remove those lines,
+    with a class and a note for each new one.
+
+The number of failure lines in the file is the difference between the
+two totals, and the script refuses a file where it is not, so the three
+change together. Update the figures in =docs/r7rs-coverage.org= in the
+same change.
+
+The same applies without a new pin. When a deviation is fixed in iota,
+the run fails, lists the tests that are no longer failing and shows the
+new number of passes: remove those lines and raise =passed=. When
+=chibi/test.iota= is changed, the totals must stay as they are unless
+the change is meant to alter what counts as a test.
+
+The script also probes the two workarounds on every run and fails when
+iota no longer needs one. Remove that workaround from =run.sh= then. For
+the second one that includes the failure the script adds by hand (the
+=removed= lines). The test then runs with the rest of the suite, and its
+line in =expected-failures.txt= stays or goes like any other.

@@ -1,0 +1,57 @@
+;; The numeric tower: exact integers of any size, exact rationals,
+;; inexact reals and complex numbers, and how they mix.
+
+(import (scheme base) (scheme inexact) (scheme complex) (scheme write))
+
+;; Print an expression next to its value.
+(define-syntax show
+  (syntax-rules ()
+    ((_ expr)
+     (begin (write 'expr) (display " => ") (write expr) (newline)))))
+
+;; Exact integers do not overflow.
+(show (expt 2 100))
+(show (* 99999999999 99999999999))
+
+;; Division of exact integers gives an exact rational.
+(show (/ 1 3))
+(show (+ 1/3 1/6))
+(show (* 2/3 3/2))
+
+;; One inexact operand makes the result inexact.
+(show (+ 1/2 0.5))
+(show (exact? 1/2))
+(show (exact? 0.5))
+
+;; exact and inexact convert. A double is a binary fraction, which is
+;; why 0.1 is not 1/10.
+(show (inexact 1/3))
+(show (exact 0.5))
+(show (exact 0.1))
+
+;; sqrt is exact when it can be, and leaves the reals when it has to.
+(show (sqrt 16))
+(show (sqrt 1/4))
+(show (sqrt 2))
+(show (sqrt -4))
+
+;; Complex numbers, with exact or inexact parts.
+(show (* 1+2i 1-2i))
+(show (/ 1+2i 3-4i))
+(show (magnitude 3+4i))
+(show (real-part 1+2i))
+(show (angle -1))
+(show (exp +i))
+
+;; Integer division comes in a floor and a truncate flavour. Both
+;; return a quotient and a remainder, and they differ for negative
+;; numbers.
+(show (call-with-values (lambda () (floor/ -7 2)) list))
+(show (call-with-values (lambda () (truncate/ -7 2)) list))
+
+;; Other radixes, in both directions.
+(show (number->string 255 16))
+(show (number->string 255 2))
+(show (string->number "ff" 16))
+(show (string->number "#b1010"))
+(show (string->number "1e3"))

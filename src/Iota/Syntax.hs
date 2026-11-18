@@ -39,6 +39,9 @@ import Iota.Value (identBase)
 
 -- Global environments
 
+-- | An empty global table with a fresh id. The name only shows up when
+-- the environment is printed. Nothing is imported: the caller fills the
+-- table with 'globalBind' or with an import.
 newGlobalEnv :: Text -> IO GlobalEnv
 newGlobalEnv name = do
   i <- freshId
@@ -46,9 +49,15 @@ newGlobalEnv name = do
   pending <- newIORef Map.empty
   pure GlobalEnv {globalId = i, globalName = name, globalTable = table, globalPending = pending}
 
+-- | What a name is bound to at top level, if anything. A name that
+-- has only been referenced so far has a pending cell but no binding,
+-- and gives Nothing. See 'pendingCell'.
 globalLookup :: GlobalEnv -> Symbol -> IO (Maybe Denotation)
 globalLookup env s = Map.lookup s <$> readIORef (globalTable env)
 
+-- | Bind a name at top level, replacing whatever it meant before.
+-- This is what an import, a @define-syntax@ and the keyword setup use.
+-- A @define@ goes through 'globalCell' instead.
 globalBind :: GlobalEnv -> Symbol -> Denotation -> IO ()
 globalBind env s d = modifyIORef' (globalTable env) (Map.insert s d)
 
@@ -87,23 +96,35 @@ globalNames env = Map.keys <$> readIORef (globalTable env)
 
 -- Ribs
 
+-- | An empty contour. A @lambda@, a @let@ and every body get one.
 newRib :: IO Rib
 newRib = Rib <$> newIORef Map.empty
 
+-- | Add a binding to a contour in place. Every 'SynEnv' that already
+-- holds the rib sees it, which is what lets a body add its internal
+-- definitions as it finds them. Binding a key twice replaces the first.
 ribBind :: Rib -> BindKey -> Denotation -> IO ()
 ribBind (Rib ref) k d = modifyIORef' ref (Map.insert k d)
 
+-- | Look in this one contour only. 'resolve' is the search through
+-- all of them.
 ribLookup :: Rib -> BindKey -> IO (Maybe Denotation)
 ribLookup (Rib ref) k = Map.lookup k <$> readIORef ref
 
+-- | The environment inside a new contour. The rib goes in front, so
+-- its bindings shadow the enclosing ones.
 pushRib :: Rib -> SynEnv -> SynEnv
 pushRib rib env = env {synRibs = rib : synRibs env}
 
+-- | The environment of top level code: no local contours, only the
+-- global table.
 topEnv :: GlobalEnv -> SynEnv
 topEnv g = SynEnv {synRibs = [], synGlobal = g}
 
 -- Identifiers
 
+-- | Is this datum an identifier, either a plain symbol or one that a
+-- macro expansion renamed?
 isIdent :: Datum -> Bool
 isIdent = \case
   DSymbol _ -> True
@@ -162,6 +183,9 @@ isSpecial env ident name
         Just (DenSpecial s) -> pure (s == name)
         _ -> pure False
 
+-- | A new lexical variable. Two variables with the same name are
+-- still different, because each has its own id. The caller binds it in
+-- a rib.
 freshLocal :: Symbol -> IO LocalVar
 freshLocal s = do
   i <- freshId

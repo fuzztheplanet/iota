@@ -12,15 +12,19 @@ module Iota.Counter
   ( freshId
   ) where
 
-import GHC.Exts (Int (I#), MutableByteArray#, RealWorld, fetchAddIntArray#, newByteArray#)
+import GHC.Exts (Int (I#), MutableByteArray#, RealWorld, fetchAddIntArray#, newByteArray#, writeIntArray#)
 import GHC.IO (IO (IO))
 import System.IO.Unsafe (unsafePerformIO)
 
 data Counter = Counter (MutableByteArray# RealWorld)
 
+-- newByteArray# hands back memory with whatever was in it, so the
+-- counter is set to zero here. Identities have to start at zero: a
+-- negative one marks a literal constant.
 newCounter :: IO Counter
 newCounter = IO $ \s -> case newByteArray# 8# s of
-  (# s', arr #) -> (# s', Counter arr #)
+  (# s1, arr #) -> case writeIntArray# arr 0# 0# s1 of
+    s2 -> (# s2, Counter arr #)
 
 counter :: Counter
 counter = unsafePerformIO newCounter

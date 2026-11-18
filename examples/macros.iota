@@ -1,0 +1,66 @@
+;; Macros with syntax-rules: a new control form, a macro with a literal
+;; keyword, a recursive macro, and what hygiene protects against.
+
+(import (scheme base) (scheme write))
+
+;; A while loop. body ... matches any number of forms and the template
+;; puts them all back.
+(define-syntax while
+  (syntax-rules ()
+    ((_ test body ...)
+     (let loop ()
+       (when test
+         body ...
+         (loop))))))
+
+(define i 0)
+(while (< i 3)
+  (display i)
+  (display " ")
+  (set! i (+ i 1)))
+(newline)
+
+;; `in` is a literal: it has to appear at that place in the use.
+(define-syntax for
+  (syntax-rules (in)
+    ((_ x in lst body ...)
+     (for-each (lambda (x) body ...) lst))))
+
+(for x in '(a b c)
+  (write x)
+  (display " "))
+(newline)
+
+;; A recursive macro. Each use peels off one expression.
+(define-syntax my-or
+  (syntax-rules ()
+    ((_) #f)
+    ((_ e) e)
+    ((_ e1 e2 ...) (let ((t e1)) (if t t (my-or e2 ...))))))
+
+(write (my-or #f #f 3))
+(newline)
+
+;; Hygiene, first direction. The template's t is not the caller's t,
+;; so this is 5 and not #f.
+(let ((t 5))
+  (write (my-or #f t))
+  (newline))
+
+;; Hygiene, second direction. The template's `if` still means `if`
+;; although the caller has rebound the name.
+(let ((if list))
+  (write (my-or #f 7))
+  (newline))
+
+;; The same thing with a temporary: swap! works on a variable that
+;; happens to be called tmp.
+(define-syntax swap!
+  (syntax-rules ()
+    ((_ a b) (let ((tmp a)) (set! a b) (set! b tmp)))))
+
+(define tmp 1)
+(define other 2)
+(swap! tmp other)
+(write (list tmp other))
+(newline)

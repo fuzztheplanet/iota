@@ -12,6 +12,13 @@ import Data.Vector.Unboxed.Mutable qualified as UMV
 import Iota.Types
 import Iota.Value
 
+-- | The vector and bytevector procedures. An index or a range that
+-- does not fit throws 'IndexOutOfRange' with the name of the procedure.
+-- @string->vector@, @string->utf8@ and @utf8->string@ take the whole
+-- object here, and wrappers in the stdlib add their optional start and
+-- end. @utf8->string@ decodes leniently. An invalid byte sequence
+-- becomes U+FFFD, not an error. @vector-map@ and @vector-for-each@ are
+-- in "Iota.Primitives.Control".
 vectorPrimitives :: [(Symbol, Value)]
 vectorPrimitives =
   [ prim "make-vector" (Between 1 2) $ \args -> case args of

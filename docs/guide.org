@@ -1,0 +1,1034 @@
+#+TITLE: Using iota
+#+DESCRIPTION: The user's guide to iota, an R7RS-small Scheme interpreter: the command line, the repl, data types, control, errors, macros, libraries, using it from Haskell, and limits.
+#+SETUPFILE: setup.org
+
+* Introduction
+  :PROPERTIES:
+  :CUSTOM_ID: introduction
+  :END:
+
+  This is the user's guide. It assumes you know some Scheme and want to
+  know what iota does with it. If iota is new to you, start with
+  [[file:tutorial.org][A tour of iota]]. Building it is covered in [[file:install.org][Installing iota]]. The
+  names each library exports are listed in [[file:procedures.org][Libraries and procedures]].
+  For a feature by feature comparison with the report, see
+  [[file:r7rs-coverage.org][R7RS-small coverage]]. For how the interpreter works inside, see
+  [[file:architecture.org][How iota is put together]]. To run Scheme from a Haskell program
+  of your own, see [[#using-iota-from-haskell][Using iota from Haskell]].
+
+* The command line
+  :PROPERTIES:
+  :CUSTOM_ID: the-command-line
+  :END:
+
+  #+begin_src sh
+    iota                      # start the repl
+    iota repl                 # the same
+    iota FILE [ARG...]        # run a script
+    iota run FILE [ARG...]    # the same, spelled out
+    iota eval EXPR            # evaluate EXPR and print the result
+    iota --version            # or -V. print the version and exit
+    iota --help               # or -h. print the usage and exit
+  #+end_src
+
+  =repl=, =run= and =eval= are commands, so a script with one of those
+  names has to be started as =iota run repl= or =iota ./repl=.
+  =iota run --help= and =iota eval --help= describe one command each.
+
+** Running a script
+   :PROPERTIES:
+   :CUSTOM_ID: running-a-script
+   :END:
+
+   A script starts with every standard library and =(iota extras)=
+   imported, like the repl. A portable program should still begin with
+   its own =(import ...)=.
+
+   The whole file is read before anything runs. A read error anywhere
+   in it, such as a missing parenthesis on the last line, is reported
+   and none of the file is run.
+
+   After that the top level forms are expanded and run one at a time,
+   in order. A form can use what the earlier ones defined, macros
+   included. Every other kind of error, a syntax error such as =(if)=
+   among them, is only found when its form is reached, and by then the
+   earlier forms have run:
+
+   #+begin_example
+     $ cat late.iota
+     (display "one")
+     (newline)
+     (if)
+     (display "two")
+     (newline)
+     $ iota late.iota
+     one
+     late.iota:3:1: bad syntax in if: (if)
+   #+end_example
+
+   The value of the last form is not printed. If you want output,
+   =display= it. Output goes to standard output and error messages to
+   standard error. The messages are described under [[#errors][Errors]]. Standard
+   output is buffered and standard error is not, so when both go to
+   the same file or pipe an error message can come before output that
+   was written earlier.
+
+   Source files are read as UTF-8 whatever the locale says, and so are
+   the standard streams and the files a program opens as text. Text on
+   the command line, that is the expression for =iota eval= and the
+   script arguments, is the exception: it is decoded according to the
+   locale. A source file that is not valid UTF-8 is a file error.
+   Invalid UTF-8 in a file or stream that a program reads as text is
+   not: it stops the program with a message from the Haskell runtime,
+   and =guard= cannot catch it. A byte order mark at the start of a
+   file is not skipped. It is read as an identifier.
+
+   A =#!= line is not skipped either. A script that begins with
+   =#!/usr/bin/env iota= stops with a read error, =unknown directive=.
+
+   There is no name for standard input. =iota -= looks for a file
+   called =-=. =iota /dev/stdin= works where the system has that path.
+   A program piped into plain =iota= goes to the repl, see
+   [[#without-a-terminal][Without a terminal]].
+
+** Evaluating an expression
+   :PROPERTIES:
+   :CUSTOM_ID: evaluating-an-expression
+   :END:
+
+   =iota eval EXPR= reads EXPR, which may hold several forms, runs them
+   like a script and then prints the value of the last one the way
+   =write= does, so a string keeps its quotes. Nothing is printed when
+   that value is unspecified, as after a =define=, or when there are no
+   values. Several values are printed one per line.
+
+   #+begin_example
+     $ iota eval '(* 6 7)'
+     42
+     $ iota eval '(define x 2) (string-append "a" "b")'
+     "ab"
+     $ iota eval -- -5
+     -5
+   #+end_example
+
+   An expression that starts with =-=, such as a negative number, has
+   to follow a =--=, as in the last line. Without it the expression is
+   taken for an option. A =-= on its own is not: it is the procedure.
+
+** Script arguments
+   :PROPERTIES:
+   :CUSTOM_ID: script-arguments
+   :END:
+
+   =(command-line)= returns the script name as it was given, followed
+   by the script's arguments, all of them strings.
+   =iota program.iota a b= gives =("program.iota" "a" "b")=. In the repl
+   and under =iota eval= it returns =("iota")=.
+
+   Everything after the script name belongs to the script. In the short
+   form, =iota FILE=, that includes options iota does not know, so
+   =iota tool.iota --verbose -x= passes both on. There are three
+   exceptions:
+
+   - =-h=, =--help=, =-V= and =--version= are taken by iota wherever
+     they appear. It prints its own help or version and the script
+     does not run.
+   - After =iota run FILE=, an argument that starts with =-= is
+     rejected as an invalid option. A =-= on its own is passed on.
+   - =+RTS= and what follows it, up to =-RTS=, goes to the Haskell
+     runtime. See [[#runtime-options][Runtime options]]. The runtime also removes a
+     =-RTS= or a =--RTS= that stands alone.
+
+   A =--= lifts all three. The first =--= on the line is dropped and
+   everything after it reaches the script as it is. With an =args.iota=
+   that holds =(write (command-line))=:
+
+   #+begin_example
+     $ iota args.iota -- --help +RTS -- x
+     ("args.iota" "--help" "+RTS" "--" "x")
+     $ iota run args.iota -- --verbose
+     ("args.iota" "--verbose")
+   #+end_example
+
+   An unknown option in front of the script name is itself taken for
+   the script name. =iota --verbose tool.iota= tries to run a file
+   called =--verbose=.
+
+** Exit status
+   :PROPERTIES:
+   :CUSTOM_ID: exit-status
+   :END:
+
+   | Situation                                           | Status                            |
+   |-----------------------------------------------------+-----------------------------------|
+   | the script or expression runs to the end            | 0                                 |
+   | =--help= or =--version=                             | 0                                 |
+   | the repl ends with =:q= or at end of input          | 0                                 |
+   | an uncaught error, a read error, an unreadable file | 1                                 |
+   | a command line iota cannot make sense of            | 1                                 |
+   | =(exit)=, =(exit #t)=, =(exit 0)=                   | 0                                 |
+   | =(exit #f)=                                         | 1                                 |
+   | =(exit n)= for any other integer =n=                | =n=, kept within 1 to 255         |
+
+   So =(exit 256)= gives 255 and =(exit -1)= gives 1. An argument that
+   is neither a boolean nor an integer is an error, and if nothing
+   catches it the status is 1 as for any other error. =exit= runs the
+   pending =dynamic-wind= after thunks and flushes standard output and
+   standard error before the process ends. =emergency-exit= takes the
+   same arguments, gives the same status and flushes the same two
+   streams, but does not run the thunks. =exit= ends the repl in the
+   same way.
+
+   Neither of them, nor the normal end of a program, flushes a file
+   port. What was written to a file port that is still open when the
+   program ends is lost, so close the port or call
+   =flush-output-port= on it.
+
+** Environment variables
+   :PROPERTIES:
+   :CUSTOM_ID: environment-variables
+   :END:
+
+   - =IOTA_LIBRARY_PATH= :: directories to search for library files,
+     separated by colons. It is read once, at startup. See
+     [[#where-libraries-are-looked-for][Where libraries are looked for]].
+   - =IOTA_TAI_OFFSET= :: the number of seconds =current-second= adds
+     to the system clock to get from UTC to TAI. The built in value is
+     37. This variable replaces it, for the day the constant falls
+     behind the leap second table.
+   - =XDG_STATE_HOME= :: the repl keeps its history in =iota/history=
+     under this directory. The default is =~/.local/state=.
+
+** Runtime options
+   :PROPERTIES:
+   :CUSTOM_ID: runtime-options
+   :END:
+
+   The executable is built with the threaded GHC runtime and one
+   setting of its own: =-K256m=, a 256 MB limit on the Haskell stack.
+   What it is for is explained under [[file:architecture.org::#run-time-settings-and-measurements][Run-time settings and measurements]].
+   Options for the runtime can be given between =+RTS= and =-RTS=
+   anywhere on the command line. They are not passed to the script.
+
+   #+begin_src sh
+     iota prog.iota +RTS -s -RTS     # print memory statistics at exit
+     iota prog.iota +RTS -A1m -RTS   # a smaller allocation area
+   #+end_src
+
+* The repl
+  :PROPERTIES:
+  :CUSTOM_ID: the-repl
+  :END:
+
+  =iota= with no arguments, or =iota repl=, starts the repl. On a
+  terminal it prints a banner and then prompts with =iota>=.
+
+** Input and output
+   :PROPERTIES:
+   :CUSTOM_ID: input-and-output
+   :END:
+
+   #+begin_example
+     $ iota
+     iota, an R7RS-small Scheme. Type :help for help.
+     iota> (define (twice x) (* 2 x))
+     iota> (twice 21)
+     42
+     iota> (list 1.5 "two" #\3)
+     (1.5 "two" #\3)
+     iota> (values 1 2)
+     1
+     2
+     iota> (define (sum lst)
+       ...   (apply + lst))
+     iota> (sum '(1 2 3))
+     6
+     iota> (car 1)
+     expected a pair, got: 1
+   #+end_example
+
+   Each input is read and run, and its value is printed the way =write=
+   does. Nothing is printed for an unspecified value, which is what
+   =define= and most procedures called for their effect return, or for
+   zero values. Several values print one per line. If a line holds
+   several forms they all run and only the value of the last is
+   printed. Output that does not end in a newline is followed directly
+   by the next prompt. On a terminal such an unfinished line is held
+   back until that prompt, so it appears after the value or the error
+   message of the input that wrote it, not before.
+
+   Input with more opening than closing parentheses continues on the
+   next line, under the =...= prompt, until they balance. Brackets
+   count as parentheses, and strings, comments and character literals
+   are skipped.
+
+   An uncaught error prints its message and the repl carries on. The
+   message goes to standard output here. The dynamic state goes back to
+   what it was before the input: pending =dynamic-wind= after thunks
+   run and =parameterize= bindings are undone. Definitions the input
+   made before the error stay.
+
+** Interrupting and leaving
+   :PROPERTIES:
+   :CUSTOM_ID: interrupting-and-leaving
+   :END:
+
+   End of input, which is Ctrl-D on a terminal, and the commands =:q=
+   and =:quit= leave the repl. It prints =Bye.= and the exit status
+   is 0. =(exit)= leaves as well, with the status it was given. End of
+   input under the =...= prompt does not leave. What was typed so far
+   goes to the reader, which reports a read error.
+
+   Ctrl-C at the prompt throws away the line being typed and prints
+   =interrupted=. Ctrl-C while an input is running stops it and prints
+   =Interrupt=, and the repl carries on as after an error. There is one
+   known problem: once Ctrl-C has been pressed at the prompt, it no
+   longer stops a running evaluation for the rest of that session.
+
+** Commands
+   :PROPERTIES:
+   :CUSTOM_ID: commands
+   :END:
+
+   | Command         | Effect                                                      |
+   |-----------------+-------------------------------------------------------------|
+   | =:help=         | list the commands                                           |
+   | =:ast EXPR=     | read EXPR and print each datum as the reader saw it         |
+   | =:env [PREFIX]= | list the names bound at top level, or those starting PREFIX |
+   | =:load FILE=    | run FILE in the current environment                         |
+   | =:q=, =:quit=   | leave the repl                                              |
+
+   A command starts in the first column and takes one line. With a
+   space in front, =:help= is read as an identifier. =:ast= does not
+   evaluate anything.
+
+   =:load FILE= runs the file like a script, but in the repl's
+   environment, so its definitions stay. Then it prints =loaded FILE=,
+   or the error with its position. Imports in the file are looked up
+   from the file's directory. An =(exit)= in the file ends the repl
+   too.
+
+** Completion and history
+   :PROPERTIES:
+   :CUSTOM_ID: completion-and-history
+   :END:
+
+   Tab completes the names bound at top level, your own definitions
+   included. Commands and file names are not completed.
+
+   The lines you type are kept in =iota/history= under
+   =XDG_STATE_HOME=, which makes =~/.local/state/iota/history= by
+   default. The up arrow brings them back, in later sessions as well.
+   The repl creates that directory when it starts, and does not start
+   if it cannot. A relative =XDG_STATE_HOME= is ignored.
+
+** Without a terminal
+   :PROPERTIES:
+   :CUSTOM_ID: without-a-terminal
+   :END:
+
+   The repl also runs when standard input is a pipe or a file. It
+   prints no banner, answers each line with the prompt and the result,
+   adds nothing to the history and ends at end of input:
+
+   # doctest: skip
+   #+begin_example
+     $ printf '(+ 1 2)\n(car 1)\n' | iota
+     iota> 3
+     iota> expected a pair, got: 1
+     iota> Bye.
+   #+end_example
+
+   To run a file as a program, name it on the command line instead.
+
+* Data types
+  :PROPERTIES:
+  :CUSTOM_ID: data-types
+  :END:
+
+** Booleans
+   :PROPERTIES:
+   :CUSTOM_ID: booleans
+   :END:
+   =#t= and =#f=, or =#true= and =#false=. Only =#f= is false. =0=,
+   the empty string and the empty list are all true.
+
+** Numbers
+   :PROPERTIES:
+   :CUSTOM_ID: numbers
+   :END:
+   Exact integers and rationals of any size, and inexact IEEE doubles:
+
+   #+begin_example
+     iota> (+ 1/3 1/6)
+     1/2
+     iota> (expt 2 100)
+     1267650600228229401496703205376
+     iota> (* 2 3.5)
+     7.0
+     iota> (exact 0.5)
+     1/2
+   #+end_example
+
+   Radix prefixes work. =#xff= is 255, =#b1010= is 10, =#e1.5= is 3/2.
+
+   Complex numbers, in rectangular and polar notation:
+
+   #+begin_example
+     iota> (* +i +i)
+     -1
+     iota> (sqrt -4)
+     +2i
+     iota> (/ 1+2i 1-2i)
+     -3/5+4/5i
+     iota> (magnitude 3+4i)
+     5
+     iota> (make-polar 1 3.141592653589793)
+     -1.0+1.2246467991473532e-16i
+   #+end_example
+
+   A complex number with exact parts stays exact. If one part is
+   inexact both are, so =1+2.0i= is read as =1.0+2.0i=. =<= and friends
+   of that kind only take real numbers, and so do =abs=, =floor=, =max=
+   and =positive?=.
+
+   An inexact number is printed with the fewest digits that read back
+   as the same number. From 1e-6 up to, but not including, 1e21 it is
+   printed positionally, always with a decimal point. Outside that
+   range it is printed with one digit before the point and an exponent.
+   The parts of a complex number follow the same rule.
+
+   #+begin_example
+     iota> 0.000001
+     0.000001
+     iota> 1e-7
+     1.0e-7
+     iota> 1e20
+     100000000000000000000.0
+     iota> 1e21
+     1.0e21
+     iota> (/ 1.0 3)
+     0.3333333333333333
+   #+end_example
+
+   =number->string= and =string->number= accept the radices 2, 8, 10
+   and 16. In a radix other than 10, =number->string= only takes exact
+   numbers.
+
+** Characters and strings
+   :PROPERTIES:
+   :CUSTOM_ID: characters-and-strings
+   :END:
+   =#\a=, =#\space=, =#\x41=. Strings take the full escape set,
+   including =\n=, =\x41;= and line continuations. Strings made by
+   =make-string=, =string-copy=, =string-append= and the like are
+   mutable. A string literal, like every literal constant, is not, and
+   neither is the result of =symbol->string=:
+
+   #+begin_example
+     iota> (string-set! "abc" 0 #\z)
+     expected a mutable object in string-set!, not a literal constant, got: "abc"
+     iota> (define s (string-copy "abc"))
+     iota> (string-set! s 0 #\z)
+     iota> s
+     "zbc"
+   #+end_example
+
+** Symbols
+   :PROPERTIES:
+   :CUSTOM_ID: symbols
+   :END:
+   Case sensitive. =|two words|= is a symbol with a space in it.
+
+** Pairs and lists
+   :PROPERTIES:
+   :CUSTOM_ID: pairs-and-lists
+   :END:
+   Mutable, unless they come from a quoted constant. A =set-car!= or
+   =set-cdr!= is visible through every reference to the pair.
+
+** Vectors and bytevectors
+   :PROPERTIES:
+   :CUSTOM_ID: vectors-and-bytevectors
+   :END:
+   =#(1 2 3)= and =#u8(0 255)= literals, which evaluate to themselves,
+   the full set of accessors, =utf8->string= and =string->utf8=. The
+   bytes of a =#u8(...)= literal have to be written in decimal.
+   =#u8(#x41)= is a read error.
+
+** Records
+   :PROPERTIES:
+   :CUSTOM_ID: records
+   :END:
+   #+begin_src scheme
+     (define-record-type point
+       (make-point x y)
+       point?
+       (x point-x set-point-x!)
+       (y point-y))
+
+     (define p (make-point 1 2))
+     (set-point-x! p 10)
+     (point-x p)                 ; => 10
+     (point? 5)                  ; => #f
+   #+end_src
+
+   The repl shows =p= as =#<point 10 2>=. Passing an accessor
+   something else is a type error, =expected a point, got: 5=.
+
+* Control
+  :PROPERTIES:
+  :CUSTOM_ID: control
+  :END:
+
+** Tail calls and continuations
+   :PROPERTIES:
+   :CUSTOM_ID: tail-calls-and-continuations
+   :END:
+
+   Tail calls are proper.
+   ~(define (loop n) (if (= n 0) 'done (loop (- n 1))))~ runs in
+   constant space for any =n=.
+
+   =call/cc= works for early exits and for real coroutines, because
+   continuations can be re-entered:
+
+   #+begin_src scheme
+     (call/cc (lambda (return)
+       (for-each (lambda (x) (when (odd? x) (return x)))
+                 '(2 4 5 6))))   ; => 5
+
+     (define (make-generator lst)
+       (define return #f)
+       (define resume #f)
+       (lambda ()
+         (call/cc (lambda (r)
+           (set! return r)
+           (if resume
+               (resume 'go)
+               (begin
+                 (for-each (lambda (x)
+                             (call/cc (lambda (k) (set! resume k) (return x))))
+                           lst)
+                 (return 'done)))))))
+     (define g (make-generator '(a b c)))
+     (list (g) (g) (g) (g))        ; => (a b c done)
+   #+end_src
+
+** dynamic-wind
+   :PROPERTIES:
+   :CUSTOM_ID: dynamic-wind
+   :END:
+
+   The before and after thunks of =dynamic-wind= run on every entry
+   and exit, including an escape and a re-entry through a
+   continuation. =exit= runs the pending after thunks, and so does an
+   error that nothing catches, in a script as well as in the repl.
+
+   #+begin_example
+     iota> (dynamic-wind
+       ...   (lambda () (display "in "))
+       ...   (lambda () (display "body "))
+       ...   (lambda () (display "out") (newline)))
+     in body out
+   #+end_example
+
+** Exceptions
+   :PROPERTIES:
+   :CUSTOM_ID: exceptions
+   :END:
+
+   =guard=, =with-exception-handler=, =raise=, =raise-continuable= and
+   =error= are the ones from the report:
+
+   #+begin_src scheme
+     (guard (e ((error-object? e) (error-object-message e)))
+       (error "boom" 1 2))                          ; => "boom"
+
+     (guard (e ((symbol? e) (list 'caught e)))
+       (raise 'oops))                               ; => (caught oops)
+
+     (with-exception-handler
+       (lambda (e) 42)
+       (lambda () (+ 1 (raise-continuable 'oops)))) ; => 43
+   #+end_src
+
+   The first argument of =error= has to be a string. A handler that
+   returns from a plain =raise= causes a second error. A =guard= with
+   no matching clause raises the object again for the handlers outside
+   it. The errors the interpreter raises itself, such as =(car 1)=, can
+   be caught in the same way. [[#error-objects][Error objects]] says what they look like.
+
+** Parameters
+   :PROPERTIES:
+   :CUSTOM_ID: parameters
+   :END:
+
+   #+begin_src scheme
+     (define p (make-parameter 10))
+     (parameterize ((p 42)) (p)) ; => 42
+     (p)                         ; => 10
+   #+end_src
+
+   The current ports are parameters too, so redirecting output is
+
+   #+begin_src scheme
+     (define out (open-output-string))
+     (parameterize ((current-output-port out))
+       (display "goes to the string port"))
+     (get-output-string out)     ; => "goes to the string port"
+   #+end_src
+
+   and that is how the stdlib defines =with-output-to-file=.
+
+** eval, load and include
+   :PROPERTIES:
+   :CUSTOM_ID: eval-load-and-include
+   :END:
+
+   #+begin_src scheme
+     (eval '(+ 1 2))                              ; => 3
+     (eval '(+ 1 2) (interaction-environment))    ; => 3
+     (eval '(* 2 3) (environment '(scheme base))) ; => 6
+   #+end_src
+
+   =eval= with one argument uses the interaction environment, the one
+   the repl and scripts run in. =(environment '(scheme base))= makes an
+   environment with the bindings of those libraries and nothing else.
+
+   =(load "file.iota")= runs a file in the interaction environment, or
+   in the environment given as a second argument. A relative file name
+   is taken from the current working directory, not from the directory
+   of the file that calls =load=.
+
+   =include= and =include-ci= take file names relative to the
+   directory of the file being run, or to the current working
+   directory in the repl and under =iota eval=. That also holds for an
+   =include= inside an included file: it is resolved against the
+   directory of the first file, not of the file it is written in.
+
+* Errors
+  :PROPERTIES:
+  :CUSTOM_ID: errors
+  :END:
+
+  An error that nothing catches ends a script or =iota eval= with a
+  message on standard error and exit status 1. In the repl the message
+  is printed and the session goes on, as described under
+  [[#input-and-output][Input and output]].
+
+** Messages
+   :PROPERTIES:
+   :CUSTOM_ID: messages
+   :END:
+
+   One example of each kind:
+
+   #+begin_example
+     iota> (car 1)
+     expected a pair, got: 1
+     iota> (car 1 2)
+     car: expected exactly 1 argument, got 2
+     iota> (undefined-name)
+     unbound variable: undefined-name
+     iota> (1 2)
+     not applicable: 1
+     iota> (/ 1 0)
+     /: division by zero
+     iota> (vector-ref (vector 1 2) 5)
+     vector-ref: index out of range: 5
+     iota> (set-car! '(1 2) 9)
+     expected a mutable object in set-car!, not a literal constant, got: (1 2)
+     iota> (read-char (current-output-port))
+     port error: read-char: not an open input port
+     iota> (error "boom" 1 "two")
+     boom 1 "two"
+     iota> (raise 'oops)
+     uncaught exception: oops
+     iota> (if)
+     bad syntax in if: (if)
+     iota> (syntax-error "my message" 1 2)
+     syntax error: my message 1 2
+     iota> (import (no such lib))
+     import error: library not found: (no such lib)
+   #+end_example
+
+   An =error= prints its message followed by the irritants as =write=
+   shows them. Any other object given to =raise= prints after
+   =uncaught exception:=. An arity error names the procedure, and an
+   anonymous one is called =lambda=. A file that cannot be opened gives
+   =file error:= followed by the file name and the system's
+   explanation, for instance
+   =file error: nope.iota: withBinaryFile: does not exist (No such file or directory)=.
+
+   A read error is the one message that takes several lines. It shows
+   the line and marks the column:
+
+   #+begin_example
+     $ iota eval '(list 1 2'
+     read error:
+     <eval>:1:10:
+       |
+     1 | (list 1 2
+       |          ^
+     unexpected end of input
+     expecting "#!", "#;", "#|", ')', '.', ';', datum, symbol or number, or white space
+   #+end_example
+
+** Positions
+   :PROPERTIES:
+   :CUSTOM_ID: positions
+   :END:
+
+   When the error happens in a file named on the command line or given
+   to =:load=, the message begins with =FILE:LINE:COLUMN:=. That is
+   where the top level form being run starts, not the exact place of
+   the error. An error inside a procedure is reported at the top level
+   form that called it:
+
+   #+begin_example
+     $ cat loc.iota
+     (define (f x)
+       (car x))
+
+     (f 1)
+     $ iota loc.iota
+     loc.iota:4:1: expected a pair, got: 1
+   #+end_example
+
+   There is no position for input typed at the repl or given to
+   =iota eval=, for an error while a file run by =load= or the body of
+   a library file is running, or for the rest of a top level form
+   after it has called =load= or imported a library from a file. An
+   error in a procedure that such a file defined, called later from
+   the script, gets the position of the script's form. There is no
+   backtrace.
+
+   Read errors in program text are different: for a script,
+   =iota eval=, the repl, =load=, =include= and a library file the
+   reader reports the exact line and column. The =read= procedure is
+   less precise. For input that ends inside a datum it gives no
+   position, and otherwise one counted from where that =read= began,
+   not from the start of the port.
+
+** Error objects
+   :PROPERTIES:
+   :CUSTOM_ID: error-objects
+   :END:
+
+   Inside a =guard= clause or a handler, the errors the interpreter
+   raises are error objects like the ones =error= makes.
+   =error-object?= is true for them. For the errors about one
+   offending value, =error-object-message= is the message without that
+   value and =error-object-irritants= is a list holding it:
+
+   #+begin_example
+     iota> (define (describe thunk)
+       ...   (guard (e ((error-object? e)
+       ...              (list (error-object-message e)
+       ...                    (error-object-irritants e))))
+       ...     (thunk)))
+     iota> (describe (lambda () (car 1)))
+     ("expected a pair" (1))
+     iota> (describe (lambda () (undefined-name)))
+     ("unbound variable" (undefined-name))
+     iota> (describe (lambda () (vector-ref (vector 1 2) 5)))
+     ("vector-ref: index out of range" (5))
+     iota> (describe (lambda () (car 1 2)))
+     ("car: expected exactly 1 argument, got 2" ())
+     iota> (describe (lambda () (error "boom" 1 "two")))
+     ("boom" (1 "two"))
+   #+end_example
+
+   Type errors, unbound variables, =not applicable=, index errors and
+   syntax errors work like the first three. Arity errors, division by
+   zero, port errors and import errors work like the fourth: the whole
+   text is the message and there are no irritants.
+
+   =file-error?= is true for an error from opening, loading or
+   deleting a file, and =read-error?= for one from =read=. Both kinds
+   are error objects too, with the system's or the reader's text as
+   the message. An object passed to =raise= that is not an error
+   object reaches the handler as it is, and =error-object?= is false
+   for it.
+
+   =write= shows an error object as =#<error "expected a pair" 1>=,
+   with =file-error= or =read-error= in place of =error= for those
+   two kinds.
+
+   A syntax error is found when a top level form is expanded, before
+   any of it runs, so a =guard= in the same form cannot catch it.
+   Around =eval= it can:
+
+   #+begin_src scheme
+     (guard (e (#t (error-object-message e)))
+       (eval '(if)))                 ; => "bad syntax in if"
+   #+end_src
+
+* Macros
+  :PROPERTIES:
+  :CUSTOM_ID: macros
+  :END:
+
+  =syntax-rules=:
+
+  #+begin_src scheme
+    (define-syntax my-or
+      (syntax-rules ()
+        ((_) #f)
+        ((_ e) e)
+        ((_ e1 e2 ...) (let ((t e1)) (if t t (my-or e2 ...))))))
+
+    (define t 5)
+    (my-or #f t)                    ; => 5
+  #+end_src
+
+  Expansion is hygienic. The =t= in the template cannot capture the
+  =t= at the call site, and =if= and =let= in the template mean what
+  they meant where the macro was defined, whatever the call site has
+  rebound. Literals such as =else= and ==>= are matched by binding, so
+  a locally rebound =else= is only a variable.
+
+  =define-syntax=, =let-syntax= and =letrec-syntax= all take
+  =syntax-rules= transformers, with nested ellipses, a custom ellipsis
+  identifier, =(... ...)= and =_=. =syntax-error= reports at expansion
+  time. A top level form is expanded once, before it runs, so a macro
+  used inside a loop is expanded once and not on every iteration.
+
+* Libraries
+  :PROPERTIES:
+  :CUSTOM_ID: libraries
+  :END:
+
+  =import= may appear anywhere at the top level of a script or of the
+  repl input. The repl and scripts begin with every standard library
+  imported, so =(import (scheme base))= is optional there. It is still
+  what a portable program should write. A =define-library= begins with
+  nothing at all, not even =define=, so its first declaration is
+  normally an =import=.
+
+  #+begin_src scheme
+    (define-library (my stack)
+      (import (scheme base))
+      (export make-stack push! pop!)
+      (begin
+        (define (make-stack) (list '*stack*))
+        (define (push! s x) (set-cdr! s (cons x (cdr s))))
+        (define (pop! s) (let ((x (cadr s))) (set-cdr! s (cddr s)) x))))
+
+    (import (prefix (my stack) stack:))
+    (define s (stack:make-stack))
+    (stack:push! s 1)
+    (stack:push! s 2)
+    (stack:pop! s)                  ; => 2
+  #+end_src
+
+  Only exported names are visible. =only=, =except=, =prefix= and
+  =rename= work as in the report, and so does
+  =(export (rename inner outer))=.
+
+  A name the program imported cannot be assigned: =(set! car cdr)= is
+  a syntax error. It can be defined again, which gives the program a
+  variable of its own. Procedures defined before that keep using the
+  imported one.
+
+  =cond-expand= knows the features =r7rs=, =exact-closed=, =ratios=,
+  =ieee-float=, =full-unicode= and =iota=. =(library (my stack))= as a
+  requirement is true when that library is defined or can be loaded
+  from a file, and false when there is no such file. If the file is
+  found but fails to load, the =cond-expand= raises that error.
+
+** Where libraries are looked for
+   :PROPERTIES:
+   :CUSTOM_ID: where-libraries-are-looked-for
+   :END:
+
+   =(import (my stack))= first uses a library of that name the program
+   has already defined or loaded. Failing that it looks for the file
+   =my/stack.iota=, in this order:
+
+   1. in the directory of the file that holds the =import=,
+   2. in each directory of =IOTA_LIBRARY_PATH=, in the order given,
+   3. in the directory =lib= under the current working directory.
+
+   The first file found is used. A number in a library name is used as
+   it is, so =(srfi 1)= is the file =srfi/1.iota=.
+
+   For input typed at the repl, for =iota eval= and for code run by
+   =eval=, the first directory is the current working directory. For
+   a file run with =:load= or =load= it is the directory of that file.
+
+   The first rule applies inside library files as well, and there it
+   may not do what you expect. An =import= in =my/queue.iota= is
+   looked up from the =my= directory. If that file imports
+   =(my stack)=, iota looks for =my/my/stack.iota=, then along
+   =IOTA_LIBRARY_PATH=, then in =lib=, and does not find the
+   =my/stack.iota= next to it. A program that imports =(my queue)=
+   then fails with =library not found: (my stack)=. Either put the
+   directory that holds =my= on =IOTA_LIBRARY_PATH=, or have the
+   program import =(my stack)= before =(my queue)=, so that it is
+   already loaded.
+
+** Library files
+   :PROPERTIES:
+   :CUSTOM_ID: library-files
+   :END:
+
+   Library files end in =.iota= like scripts. What makes a file a
+   library is that it holds nothing but =define-library= forms.
+   Anything else in it is an import error. A file may hold several
+   libraries, and all of them are defined when it is loaded. If none
+   of them has the name that was asked for, that is an import error
+   too.
+
+   A library is loaded once per run. Importing it again, with or
+   without a prefix, uses the same bindings and does not run its body
+   a second time.
+
+* The standard library
+  :PROPERTIES:
+  :CUSTOM_ID: the-standard-library
+  :END:
+
+  The standard libraries are part of the binary. The primitives are
+  written in Haskell and the rest is =lib/iota/stdlib.iota=, which is
+  compiled in when iota is built and loaded at startup. Nothing is
+  read from disk at run time.
+
+  [[file:procedures.org][Libraries and procedures]] lists what every library exports and has
+  an [[file:procedures.org::#index][index]] of all the names. The non-standard extras are in
+  =(iota extras)=, described [[file:procedures.org::#iota-extras][on the same page]]. The repl and scripts
+  import that library by default. A =define-library= has to import it
+  like any other.
+
+* Using iota from Haskell
+  :PROPERTIES:
+  :CUSTOM_ID: using-iota-from-haskell
+  :END:
+
+  iota is a Haskell library with the =iota= command on top of it, so a
+  Haskell program can run Scheme with it. The module =Iota= has what
+  such a program needs. =newInterpreter= makes an interpreter.
+  =runText= and =runFile= run a program in it and return the value of
+  the last form, or the message of an error that nothing caught.
+  =writeText= and =displayText= turn a value into text, and
+  =captureOutput= collects what a program writes. The
+  [[file:api/Iota.html][API documentation]] of the module describes each of them. The other
+  modules of the library are the parts of the interpreter.
+
+  This is =examples/haskell/Embed.hs= from the repository:
+
+  #+INCLUDE: "../examples/haskell/Embed.hs" src haskell
+
+  It prints:
+
+  #+INCLUDE: "../examples/haskell/Embed.expected" example
+
+  The test suite builds that program, runs it and compares what it
+  prints with those lines. In a program of your own the module is
+  called =Main=.
+
+  iota is not on Hackage. A package that uses it says where the
+  source is in its =cabal.project=, with the commit or the tag to
+  build:
+
+  #+begin_example
+    packages: .
+
+    source-repository-package
+      type: git
+      location: https://github.com/fuzztheplanet/iota.git
+      tag: COMMIT
+  #+end_example
+
+  and names =iota= under =build-depends= in its own package
+  description, next to =base= and =text=. cabal then fetches iota and
+  builds it with the package. The standard library is compiled into
+  the iota library, so the program needs no file of iota's when it
+  runs.
+
+  An interpreter keeps what a program defines, as the example shows.
+  Two interpreters in one process do not share environments, libraries
+  or dynamic state. An error in the Scheme program comes back as the
+  message, not as a Haskell exception. The one exception these calls
+  let through on purpose is =ExitCode=, which a Scheme program that
+  calls =exit= throws.
+
+* Limits and what is not included
+  :PROPERTIES:
+  :CUSTOM_ID: limits
+  :END:
+
+  iota has R7RS-small and =(iota extras)= and nothing else.
+
+  - There are no SRFI libraries. =(import (srfi 1))= is
+    =library not found=, unless you supply a =srfi/1.iota= of your
+    own.
+  - Things people look for that are not there: =sort=, hash tables,
+    string searching and splitting, =assert=, =format=, random
+    numbers, a way to run other programs, and a procedure called
+    =iota=. =(iota extras)= has =iota-range= instead.
+  - Macros are =syntax-rules= only. There is no =define-macro=,
+    =syntax-case= or explicit renaming.
+  - A script cannot begin with a =#!= line, standard input cannot be
+    named with =-=, and a byte order mark is not skipped. See
+    [[#running-a-script][Running a script]].
+  - Errors carry the position of a top level form at best, and none
+    at all while a loaded or imported file is running. There is no
+    backtrace, no debugger and no tracing. See [[#positions][Positions]].
+
+  A few things do not work as they should. The ones you are most
+  likely to meet:
+
+  - A form or a macro template written with a dotted tail that is a
+    list is rejected. =(lambda formals . body)= in a =syntax-rules=
+    template fails with "improper list". Write the template with an
+    ellipsis instead, as in =(lambda formals body ...)=.
+  - =read= does not return on a datum label that is used again after
+    a circular datum, as in =(#0=(1 . #0#) #0#)=, which is what =write=
+    prints for a list that holds the same circular list twice.
+  - What is written to a file port is lost unless the port is closed
+    or flushed before the program ends. See [[#exit-status][Exit status]].
+  - The bytes of a =#u8(...)= literal have to be decimal. =#u8(#x41)=
+    is a read error.
+  - =map= and =for-each= reject a circular list, even next to a
+    finite one.
+  - =(file-exists? ".")= is =#f=. A directory does not count.
+  - Ctrl-C stops working on running evaluations once it has been used
+    at the repl prompt. See [[#interrupting-and-leaving][Interrupting and leaving]].
+  - A library file does not find its neighbours by itself. See
+    [[#where-libraries-are-looked-for][Where libraries are looked for]].
+
+  The full list is under [[file:r7rs-coverage.org::#known-defects][Known defects]]. The places where iota reads
+  the report in its own way, and its extensions, are under
+  [[file:r7rs-coverage.org::#deviations-and-extensions][Deviations and extensions]], and the results of an external test
+  suite under [[file:r7rs-coverage.org::#conformance-suite][Conformance suite]].
+
+** Speed and memory
+   :PROPERTIES:
+   :CUSTOM_ID: speed-and-memory
+   :END:
+
+   Some figures to judge the speed by. They are wall clock times,
+   taken with =time iota eval ...= on the x86-64 Linux machine iota is
+   developed on, with a GHC 9.6.7 build:
+
+   | Program                                                  | Time   |
+   |----------------------------------------------------------+--------|
+   | =1=, which is the startup cost                           | 0.05 s |
+   | a loop counting down from ten million                    | 6.5 s  |
+   | =(fib 30)=, written with two recursive calls             | 2.3 s  |
+   | a recursion one million calls deep, not in tail position | 1.2 s  |
+
+   The process takes about 50 MB of memory from the start. This and
+   the next two figures are the peak resident size of the process.
+
+   Recursion that is not in tail position is limited by memory, not by
+   a stack size. The recursion a million calls deep took about 110 MB
+   and one ten million deep took about 520 MB. Deeply nested data
+   works as well, but reading it is expensive: =read= on a list nested
+   a hundred thousand levels deep took about 2 s, and the time and the
+   memory grow with the depth.
+
+   [[file:architecture.org::#run-time-settings-and-measurements][Run-time settings and measurements]] has more detailed figures, from
+   the runtime's own report.

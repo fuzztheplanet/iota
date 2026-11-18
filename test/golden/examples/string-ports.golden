@@ -1,0 +1,14 @@
+symbol "a string" a string (1 2.5 #\x)
+1: symbol
+2: "a string"
+3: a
+4: string
+5: (1 2.5 #\x)
+"first line"
+#\s
+#\e
+"econd"
+" line"
+"xyz"
+#t
+"1, two, three"

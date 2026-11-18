@@ -1,0 +1,63 @@
+;; Exceptions: error objects, guard, raising any object, re-raising,
+;; and handlers that return to the point of the raise.
+
+(import (scheme base) (scheme write))
+
+(define (show . xs)
+  (for-each display xs)
+  (newline))
+
+;; error makes an error object from a message and some irritants.
+;; guard catches it, and the clauses are tried like those of a cond.
+(define (reciprocal x)
+  (if (= x 0)
+      (error "cannot take the reciprocal of" x)
+      (/ 1 x)))
+
+(show (reciprocal 4))
+
+(guard (e ((error-object? e)
+           (show "caught: " (error-object-message e)
+                 " " (error-object-irritants e))))
+  (reciprocal 0))
+
+;; Errors raised by the interpreter are error objects as well.
+(guard (e ((error-object? e)
+           (show "caught: " (error-object-message e)
+                 " " (error-object-irritants e))))
+  (vector-ref (vector 1 2 3) 10))
+
+;; raise takes any object, and a guard clause can test for it.
+(define (classify thunk)
+  (guard (e ((symbol? e) (list 'symbol e))
+            ((string? e) (list 'string e)))
+    (thunk)))
+
+(show (classify (lambda () (raise 'out-of-cheese))))
+(show (classify (lambda () (raise "a string"))))
+
+;; When no clause matches, the object is raised again and the next
+;; guard out sees it.
+(show
+ (guard (e ((number? e) (list 'outer-caught e)))
+   (classify (lambda () (raise 42)))))
+
+;; A guard clause can pass what it found to a procedure with =>.
+(show
+ (guard (e ((assq 'code e) => cdr))
+   (raise (list (cons 'code 404) (cons 'reason "not found")))))
+
+;; with-exception-handler installs a handler without leaving the
+;; computation. raise-continuable lets the handler supply a value.
+(show
+ (with-exception-handler
+  (lambda (e) 10)
+  (lambda () (+ 1 (raise-continuable 'need-a-number)))))
+
+;; After plain raise the handler must not return. If it does, that is
+;; a second error, raised where the first one was.
+(guard (e ((error-object? e)
+           (show "caught: " (error-object-message e))))
+  (with-exception-handler
+   (lambda (e) 'ignored)
+   (lambda () (raise 'oops))))

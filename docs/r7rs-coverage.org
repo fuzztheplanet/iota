@@ -1,137 +1,517 @@
 #+TITLE: R7RS-small coverage
+#+DESCRIPTION: What iota implements of the R7RS-small report, row by row, with the tests behind each row, the results of an outside test suite, the deliberate deviations and the known defects.
 #+SETUPFILE: setup.org
 #+OPTIONS: num:nil
 
-[[file:index.org][↑ Back to the index]]
+What iota covers of the [[https://small.r7rs.org/][R7RS-small]] report, chapter by chapter, and
+what backs each row.
 
-What iota covers of the report. The status column is =yes=, =part= with
-a note, or =no=. Every =yes= row with observable behaviour has a test
-behind it.
+The Status column is =yes=, =part= with a note, or =no=. The Tests
+column names the tests that exercise the row:
+
+- =Reader=, =Number=, =Printer=, =Macro=, =Property=, =Eval=, =Scheme=,
+  =Ports= and =Coverage= are the modules =test/Test/NAME.hs=. What
+  follows the colon is a test group of that module, as in =Eval: tail
+  calls=, or the name of one test where the module has no groups. A
+  module name on its own means all of it. =Coverage= holds the cases
+  that were written for rows of this page which nothing else tested.
+- =golden: NAME= is the program =test/scheme/NAME.iota=, whose output
+  is compared with =test/golden/NAME.golden=.
+- =Examples: NAME= is the program =examples/NAME.iota=, whose output is
+  compared with =test/golden/examples/NAME.golden=.
+
+=make test= runs them all, see [[file:hacking.org::#tests][Tests]]. It also runs the examples
+in this documentation. Those are not counted on this page.
+
+To run one group, give its name to the test program, as in
+=cabal test --test-options='-p "tail calls"'=. Inside the test program
+the tests of a module are a group named after the module, with four
+exceptions: =Scheme= is the group "Scheme programs", =Macro= is
+"syntax-rules", =Property= is "properties" and =Ports= is "files and
+processes". The golden programs are the group "Golden".
+
+A test is listed for a row only if it would fail were the feature
+broken. Where part of a row has no such test the column says which
+part, with the word =none=. Every status and note was also checked by
+hand against the interpreter when this page was last revised, so a
+part marked =none= worked then, but no test keeps it working.
+
+That is all the tables claim. A test covers the cases it tries, not
+the report. In chapter 6 a row is a whole section of the report. Every
+procedure of the section is called by some test, but for many of them
+that is one simple call, see [[#procedures-that-no-test-calls][after the table]].
+
+After the tables come the results of an [[#conformance-suite][outside test suite]], the
+places where iota [[#deviations-and-extensions][deviates from the report on purpose]], and the
+[[#known-defects][known defects]]. A note in a table such as "Known defects 4" refers to
+an item of that last list. A row with such a note has the status
+=part= when the report requires what is missing, and keeps =yes= when
+the defect is in something the report leaves to the implementation.
 
 * 2. Lexical conventions
   :PROPERTIES:
   :CUSTOM_ID: 2-lexical-conventions
   :END:
 
-  | Feature                          | Status | Note                                    |
-  |----------------------------------+--------+-----------------------------------------|
-  | identifiers, \vert{}-piped        | yes    |                                         |
-  | case sensitivity, =#!fold-case=  | yes    | =#!fold-case= and =#!no-fold-case=      |
-  | =#t= =#f= =#true= =#false=       | yes    |                                         |
-  | numbers (see 6.2)                | yes    | one radix and one exactness prefix      |
-  | characters, names, =#\xNN=       | yes    | range and surrogates checked            |
-  | strings, escapes, =\x...;=       | yes    |                                         |
-  | line, block and datum comments   | yes    | block comments nest                     |
-  | datum labels ~#0=~ and ~#0#~     | yes    | reader, =write=, =write-shared=         |
+  | Feature                                         | Status | Note                                                                                                                                                                                              | Tests                                                                                     |
+  |-------------------------------------------------+--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------|
+  | identifiers, \vert{}-piped                      | yes    |                                                                                                                                                                                                   | Reader: atoms; Printer; Property                                                          |
+  | pairs and lists, dotted notation                | part   | a dotted tail that is itself a list is kept as it was written. As data that makes no difference, =(a . (b c))= is =(a b c)=. As code it does: =(+ . (1 2))= is a syntax error. Known defects 1    | Reader: lists                                                                             |
+  | case sensitivity, =#!fold-case=                 | part   | =#!fold-case= and =#!no-fold-case=. A file is folded from the directive on. On a port the directive ends with the datum being read, and the next =read= is case sensitive again. Known defects 3  | Reader: datum labels and directives; Eval: characters and strings (unicode)               |
+  | =#t= =#f= =#true= =#false=                      | yes    |                                                                                                                                                                                                   | Reader: atoms; Coverage: lexical syntax                                                   |
+  | numbers (see 6.2)                               | part   | one radix and one exactness prefix. The sign of an infinite imaginary part is lost: =1.0-inf.0i= reads as =1.0+inf.0i=. Known defects 5                                                           | Reader: numbers; Reader: datum labels and directives                                      |
+  | vector and bytevector literals                  | part   | a bytevector element has to be written in decimal: =#u8(#x41)= is a read error. Known defects 4                                                                                                   | Reader: vectors and bytevectors; Printer                                                  |
+  | characters, =#\space=, =#\newline=, =#\xNN=     | yes    | code points past =#x10FFFF= and surrogates are rejected                                                                                                                                           | Reader: characters and strings; Reader: vectors and bytevectors; Coverage: lexical syntax |
+  | the other character names                       | yes    | =alarm= =backspace= =delete= =escape= =null= =return= =tab=                                                                                                                                       | Coverage: lexical syntax                                                                  |
+  | strings, =\n= =\t= =\"= =\\= =\x...;=           | yes    | a surrogate escape is rejected                                                                                                                                                                    | Reader: characters and strings; Reader: vectors and bytevectors; Property                 |
+  | =\a= =\b= =\r= and line continuation in strings | yes    |                                                                                                                                                                                                   | Coverage: lexical syntax                                                                  |
+  | line, block and datum comments                  | yes    | block comments nest                                                                                                                                                                               | Reader: comments                                                                          |
+  | datum labels ~#0=~ and ~#0#~                    | part   | reader, =write=, =write-shared=. A label that is used again after a labelled datum which refers to itself, as in ~(#0=(1 . #0#) #0#)~, makes the reader hang or run out of stack. Known defects 2 | Reader: datum labels and directives; Eval: equivalence and printing of shared structure   |
+
+* 3. Basic concepts
+  :PROPERTIES:
+  :CUSTOM_ID: 3-basic-concepts
+  :END:
+
+  | Feature                               | Status | Note                                                                                                                                                                                                                                                           | Tests                                                                                                                                                                 |
+  |---------------------------------------+--------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  | proper tail recursion (3.5)           | yes    | a call in tail position is passed the continuation of its caller. Measured by hand: a loop of tail calls keeps about 0.3 MB of live data at one million iterations and at three million, where the same loop written without a tail call keeps 24 MB and 95 MB | none. Eval: tail calls and golden: tail-call run long loops, but recursion that is not in tail position gets as deep without failing, so they would pass without this |
+  | literal constants are immutable (3.4) | yes    | item 6 of Deviations and extensions                                                                                                                                                                                                                            | Eval: strings and chars; Coverage: literal constants                                                                                                                  |
 
 * 4. Expressions
   :PROPERTIES:
   :CUSTOM_ID: 4-expressions
   :END:
 
-  | Form                             | Status | Note                                    |
-  |----------------------------------+--------+-----------------------------------------|
-  | quote, self-evaluating           | yes    | vectors and bytevectors self-evaluate   |
-  | lambda, all formal shapes        | yes    |                                         |
-  | if, set!                         | yes    | =set!= of an imported binding is an error |
-  | cond and case, with ==>=         | yes    | =else= and ==>= matched by binding      |
-  | and, or, when, unless            | yes    |                                         |
-  | let, let*, letrec, letrec*       | yes    | use before init is an error             |
-  | named let, do                    | yes    |                                         |
-  | let-values, let*-values          | yes    |                                         |
-  | begin                            | yes    |                                         |
-  | quasiquote, nested, splicing     | yes    | vectors too                             |
-  | delay, delay-force, force        | yes    | chapter 7.3 semantics, constant space   |
-  | make-promise, promise?           | yes    |                                         |
-  | parameterize, make-parameter     | yes    | converter, restored on re-entry         |
-  | guard, with ==>= and re-raise    | yes    | re-raise in the raise's dynamic env     |
-  | case-lambda                      | yes    |                                         |
-  | cond-expand                      | yes    | features: r7rs exact-closed ratios      |
-  |                                  |        | ieee-float full-unicode iota, and =(library ...)= |
-  | include, include-ci              | yes    | relative to the including file          |
-  | syntax-rules                     | yes    | hygienic by renaming. nested ellipsis,  |
-  |                                  |        | literals, =_=, custom ellipsis, =(... t)= |
-  | define-syntax, let-syntax, letrec-syntax | yes |                                    |
-  | syntax-error                     | yes    | at expansion time                       |
+  | Form                         | Status | Note                                                                                                                                                                                                                                                                                                                                                                                                          | Tests                                                                                                                              |
+  |------------------------------+--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------|
+  | quote, self-evaluating data  | yes    | vectors and bytevectors self-evaluate                                                                                                                                                                                                                                                                                                                                                                         | Eval: self-evaluation and quote; Eval: vectors and bytevectors                                                                     |
+  | lambda, all formal shapes    | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Eval: lambdas and closures                                                                                                         |
+  | if, set!                     | yes    | =set!= of an imported binding is a syntax error                                                                                                                                                                                                                                                                                                                                                               | Eval: conditionals; Eval: binding forms; Coverage: expressions                                                                     |
+  | cond and case, with ==>=     | yes    | =else= and ==>= are matched by binding                                                                                                                                                                                                                                                                                                                                                                        | Eval: conditionals; Eval: hygiene; Eval: definitions and derived forms                                                             |
+  | and, or, when, unless        | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Eval: conditionals                                                                                                                 |
+  | let, let*, letrec            | yes    | reading a =letrec= variable before it is initialised is an error                                                                                                                                                                                                                                                                                                                                              | Eval: binding forms; Eval: error objects                                                                                           |
+  | letrec*                      | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Coverage: expressions                                                                                                              |
+  | named let, do                | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Eval: binding forms; Eval: tail calls; Eval: definitions and derived forms                                                         |
+  | let-values, let*-values      | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Eval: binding forms; Eval: definitions and derived forms                                                                           |
+  | begin                        | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Eval: hygiene; Eval: promises and parameters                                                                                       |
+  | quasiquote, nested, splicing | part   | vectors too. =(1 unquote x)= written out in full is not taken as =(1 . ,x)=. Known defects 1                                                                                                                                                                                                                                                                                                                  | Eval: quasiquote; golden: quasiquote                                                                                               |
+  | delay, delay-force, force    | yes    | the definitions of chapter 7.3                                                                                                                                                                                                                                                                                                                                                                                | Eval: promises and parameters; Eval: definitions and derived forms. That a =delay-force= chain runs in constant space: none        |
+  | make-promise, promise?       | yes    | =make-promise= returns a promise unchanged                                                                                                                                                                                                                                                                                                                                                                    | Eval: regression: precision, symbols, chars; Coverage: expressions                                                                 |
+  | parameterize, make-parameter | yes    | converter. The outer value is back after the body and after an error, and the inner one on re-entry through a continuation                                                                                                                                                                                                                                                                                    | Eval: promises and parameters; Ports: an uncaught error resets the dynamic state; Coverage: expressions                            |
+  | guard                        | yes    | when no clause matches, the object is raised again in the dynamic environment of the =raise=                                                                                                                                                                                                                                                                                                                  | Eval: exceptions; Eval: re-entrant continuations and dynamic-wind; golden: exceptions; Examples: exceptions; Coverage: expressions |
+  | case-lambda                  | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Eval: case-lambda; Eval: error objects                                                                                             |
+  | cond-expand                  | yes    | =and=, =or=, =not= and =(library ...)=. The features are =r7rs= =exact-closed= =ratios= =ieee-float= =full-unicode= =iota=                                                                                                                                                                                                                                                                                    | Eval: cond-expand and features; Eval: libraries and environments                                                                   |
+  | include                      | yes    | the report leaves the search to the implementation. The name is relative to the file being run, loaded or imported. An =include= inside an included file is looked up from that same outer file, not from the file it is written in. Known defects 18                                                                                                                                                         | golden: include; Ports: include is relative to the including file                                                                  |
+  | include-ci                   | yes    | folds identifiers, not strings or characters                                                                                                                                                                                                                                                                                                                                                                  | Coverage: files                                                                                                                    |
+  | syntax-rules                 | part   | hygienic by renaming. Nested ellipsis, literals, =_=, a custom ellipsis, dotted and vector patterns, =(... ...)= for a literal ellipsis. A template with a dotted tail, as in =(f . args)= or =(lambda formals . body)=, expands into code that is rejected. =(... template)= does not substitute pattern variables, and an ellipsis named among the literals is still the ellipsis. Known defects 1, 6 and 7 | Macro; Eval: macros; Eval: hygiene; golden: macros; Scheme: macros writing macros' bread and butter                                |
+  | define-syntax, let-syntax    | yes    | =define-syntax= also inside a body. A =let-syntax= macro cannot refer to itself                                                                                                                                                                                                                                                                                                                               | Eval: macros; Eval: definitions and derived forms; Coverage: expressions                                                           |
+  | letrec-syntax                | yes    |                                                                                                                                                                                                                                                                                                                                                                                                               | Coverage: expressions                                                                                                              |
+  | syntax-error                 | yes    | signalled at expansion time                                                                                                                                                                                                                                                                                                                                                                                   | Eval: make-list, rationalize, syntax-error                                                                                         |
 
 * 5. Program structure
   :PROPERTIES:
   :CUSTOM_ID: 5-program-structure
   :END:
 
-  | Feature                          | Status | Note                                    |
-  |----------------------------------+--------+-----------------------------------------|
-  | define, both shapes              | yes    | and MIT curried define                  |
-  | define-values                    | yes    |                                         |
-  | define-record-type               | yes    | type name bound to the descriptor       |
-  | internal defines                 | yes    | letrec* semantics                       |
-  | define-library, import           | yes    | own environment per library. exports    |
-  |                                  |        | enforced. only, except, prefix, rename. |
-  |                                  |        | include-library-declarations, cond-expand |
-  | library files                    | yes    | =a/b.iota= on the search path           |
+  | Feature                                                                        | Status | Note                                                                                                                                                                              | Tests                                                                                                                                           |
+  |--------------------------------------------------------------------------------+--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------|
+  | define, both shapes                                                            | yes    | the curried shape is an extension, item 3 of Deviations and extensions                                                                                                            | Eval: binding forms; Eval: lambdas and closures; Coverage: program structure                                                                    |
+  | define-values                                                                  | yes    | at the top level and in a body, with a rest formal                                                                                                                                | Eval: binding forms; Eval: definitions and derived forms                                                                                        |
+  | define-record-type                                                             | yes    | the type name is bound to the descriptor. Each definition makes a new type                                                                                                        | Eval: records; Eval: definitions and derived forms; golden: records; Coverage: program structure                                                |
+  | internal definitions                                                           | yes    | =letrec*= semantics. A definition after an expression is a syntax error                                                                                                           | Eval: lambdas and closures; Eval: definitions and derived forms; Eval: strings and chars; golden: closures                                      |
+  | define-library, import                                                         | yes    | an environment per library, which holds what the library imports and nothing else. Only exported names are visible, and =export= can rename. =only=, =except=, =prefix=, =rename= | Eval: import and define-library; Eval: libraries and environments; Coverage: program structure                                                  |
+  | include, include-ci, include-library-declarations and cond-expand in a library | yes    | file names are relative to the library file                                                                                                                                       | Coverage: files; Coverage: program structure                                                                                                    |
+  | library files                                                                  | yes    | =a/b.iota= next to the importing file, then in the directories of =IOTA_LIBRARY_PATH=, then in =lib/= under the current directory                                                 | Ports: a library is loaded from a .iota file next to the program; Examples: stack; Examples: queue; Coverage: files. The other two places: none |
+
+  [[file:guide.org::#libraries][Libraries]] in the user's guide describes the search for library
+  files in full.
 
 * 6. Standard procedures
   :PROPERTIES:
   :CUSTOM_ID: 6-standard-procedures
   :END:
 
-  Every procedure of every standard library is present. Startup checks
-  the export lists in Iota.Library against the implementation
-  environment, so a missing name fails at boot rather than at first use.
-  The rows that needed some thought:
+  The names each standard library exports are listed in Iota.Library,
+  transcribed from Appendix A of the report, and shown on
+  [[file:procedures.org][Libraries and procedures]]. Startup checks every listed name against
+  the implementation environment, so a library cannot export a name
+  that is not defined. That check says nothing about a name the lists
+  leave out. Compared with Appendix A as the errata correct it, they
+  leave out none.
 
-  | Feature                          | Status | Note                                    |
-  |----------------------------------+--------+-----------------------------------------|
-  | eq?, eqv?, equal?                | yes    | equal? terminates on cycles, union-find |
-  | exact rationals, bignums         | yes    |                                         |
-  | inexact reals, +inf.0, +nan.0, -0.0 | yes | =(eqv? 0.0 -0.0)= is #f                 |
-  | complex numbers                  | yes    | rectangular and polar syntax, exact and |
-  |                                  |        | inexact, (scheme complex), sqrt, expt,  |
-  |                                  |        | exp, log and the trigonometric ones     |
-  | exact and inexact comparison     | yes    | exact, including against infinities     |
-  | number->string, string->number   | yes    | radices 2, 8, 10 and 16 only. positional |
-  |                                  |        | decimal output                          |
-  | char predicates                  | yes    | Unicode categories. digit-value         |
-  | char-foldcase, string-foldcase, string-ci | yes | full case folding for strings    |
-  | apply, map, for-each, n-ary      | yes    | stop at the shortest list. continuation safe |
-  | call/cc                          | yes    | re-entrant                              |
-  | dynamic-wind                     | yes    | before and after replayed on every transition |
-  | exceptions (6.11)                | yes    | handler stack. raise-continuable. guard. |
-  |                                  |        | error-object?, file-error?, read-error? |
-  | eval, environment                | yes    | (scheme eval). scheme-report-environment |
-  | ports                            | yes    | string, bytevector, file, binary. read  |
-  |                                  |        | is incremental on handles               |
-  | write, write-shared, write-simple | yes   | labels for cycles, for everything shared, or none |
-  | (scheme process-context)         | yes    | exit unwinds dynamic-wind. emergency-exit |
-  | (scheme time)                    | yes    | current-second is on the TAI scale      |
-  | (scheme r5rs)                    | yes    |                                         |
+  | Section                                                        | Status | Note                                                                                                                                                                                                                                                                                                                                                                                                     | Tests                                                                                                                                                                                                                                                       |
+  |----------------------------------------------------------------+--------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  | 6.1 Equivalence predicates                                     | yes    | =equal?= terminates on cyclic data. =(eqv? 0.0 -0.0)= is =#f=                                                                                                                                                                                                                                                                                                                                            | Eval: predicates and equivalence; Eval: equivalence and printing of shared structure; Eval: numbers: printing and comparison; Coverage: equivalence                                                                                                         |
+  | 6.2 Numbers: the tower                                         | yes    | exact integers and rationals of any size, inexact reals with =+inf.0=, =+nan.0= and =-0.0=, complex numbers with exact or inexact parts, in rectangular and polar notation                                                                                                                                                                                                                               | Reader: numbers; Number; Property; Eval: arithmetic; Eval: complex numbers; golden: arith; Examples: numbers                                                                                                                                                |
+  | 6.2 exactness and comparison                                   | yes    | an inexact argument makes the result inexact. ~=~, ~<~ and the others compare an exact with an inexact number exactly, infinities included                                                                                                                                                                                                                                                               | Number; Eval: regression: precision, symbols, chars; Eval: numbers: printing and comparison                                                                                                                                                                 |
+  | 6.2 arithmetic, division, rounding                             | yes    | =round= rounds to even. =min= and =max= with a NaN depend on the order of their arguments. Known defects 22                                                                                                                                                                                                                                                                                              | Number; Eval: arithmetic; Eval: numbers: printing and comparison; Coverage: numbers                                                                                                                                                                         |
+  | 6.2 sqrt, expt, exp, log, trigonometry                         | yes    | =sqrt= of an exact square is exact. An argument outside the real domain gives a complex result, as in =(sqrt -4)=                                                                                                                                                                                                                                                                                        | Number; Eval: arithmetic; Eval: complex numbers; Coverage: numbers                                                                                                                                                                                          |
+  | 6.2 number->string, string->number                             | part   | radix 2, 8, 10 or 16. An inexact number is written positionally when its magnitude is at least 1e-6 and below 1e21, as in =0.000001=, and with an exponent outside that range, as in =9.99e-7= and =1.0e21=. =number->string= refuses an inexact number in a radix other than 10, and =string->number= loses the sign of an infinite imaginary part. Known defects 8 and 5                               | Number; Property; Eval: arithmetic; Eval: numbers: printing and comparison; Eval: complex numbers; Coverage: numbers                                                                                                                                        |
+  | 6.3 Booleans                                                   | yes    | only =#f= is false                                                                                                                                                                                                                                                                                                                                                                                       | Eval: predicates and equivalence; Eval: conditionals; Coverage: booleans and symbols                                                                                                                                                                        |
+  | 6.4 Pairs and lists                                            | yes    | =member= and =assoc= take an optional comparison procedure                                                                                                                                                                                                                                                                                                                                               | Eval: pairs and lists; Eval: stdlib; Eval: make-list, rationalize, syntax-error; golden: sort; Coverage: pairs and lists                                                                                                                                    |
+  | 6.5 Symbols                                                    | yes    | a symbol that would read as something else is written between bars. =symbol->string= returns an immutable string                                                                                                                                                                                                                                                                                         | Printer; Eval: strings and chars; Eval: regression: precision, symbols, chars; Coverage: booleans and symbols                                                                                                                                               |
+  | 6.6 Characters                                                 | part   | =char-numeric?=, =char-whitespace?= and =digit-value= work on all of Unicode. =char-alphabetic?=, =char-upper-case?= and =char-lower-case?= go by general category, which is not the property the report names, and =char-foldcase= is not the simple case folding. Known defects 9                                                                                                                      | Eval: strings and chars; Eval: characters and strings (unicode); Coverage: characters and strings                                                                                                                                                           |
+  | 6.7 Strings                                                    | part   | mutable, except literals. =string-foldcase= and the =string-ci= comparisons use the full case folding, so ~(string-ci=? "Straße" "STRASSE")~ holds. =string-downcase= does not write a final sigma. Known defects 9                                                                                                                                                                                      | Eval: strings and chars; Eval: characters and strings (unicode); Coverage: characters and strings                                                                                                                                                           |
+  | 6.8 Vectors                                                    | yes    | mutable, except literals                                                                                                                                                                                                                                                                                                                                                                                 | Eval: vectors and bytevectors; Eval: definitions and derived forms; Scheme: state and mutation; Coverage: vectors and bytevectors                                                                                                                           |
+  | 6.9 Bytevectors                                                | yes    |                                                                                                                                                                                                                                                                                                                                                                                                          | Reader: vectors and bytevectors; Eval: vectors and bytevectors; Coverage: vectors and bytevectors                                                                                                                                                           |
+  | 6.10 Control features                                          | part   | =map=, =for-each= and the string and vector versions take several sequences and stop at the shortest, but =map= and =for-each= reject a circular list. Known defects 10. Re-entering a continuation captured inside =map= or =vector-map= does not change a result already returned. =call/cc= continuations are re-entrant, and =dynamic-wind= runs its before and after thunks on every entry and exit | Eval: higher order procedures; Eval: multiple values and call/cc; Eval: re-entrant continuations and dynamic-wind; golden: callcc; golden: higher-order; Examples: dynamic-wind; Examples: generator; Coverage: control                                     |
+  | 6.11 Exceptions                                                | yes    | a handler runs with the handlers outside it. Returning from the handler of a =raise= is a second error. An error signalled by a primitive is an error object like any other, so =guard=, =error-object-message= and =error-object-irritants= work on it. =file-error?= and =read-error?=. =error= insists on a string as its first argument. Known defects 21                                            | Eval: exceptions; Eval: error objects; golden: exceptions; Examples: exceptions                                                                                                                                                                             |
+  | 6.12 Environments and evaluation                               | part   | =eval= and =environment= as in the report. =null-environment= returns what =scheme-report-environment= returns, procedures included. Known defects 11. =eval= of a datum that is circular through a =car= or a vector does not return. Known defects 16                                                                                                                                                  | Eval: eval; Eval: libraries and environments; Coverage: environments, for the syntax only                                                                                                                                                                   |
+  | 6.13.1 Ports                                                   | part   | string, bytevector and file ports, textual and binary. The current ports are parameter objects. Once a port is closed, =input-port?= and =output-port?= answer =#f= for it and =get-output-string= and =get-output-bytevector= fail. Known defects 12 and 13                                                                                                                                             | Eval: string ports; Eval: ports are parameter objects; Eval: sequential read and binary ports; Ports: read on a file port is incremental; golden: output; Examples: string-ports; Coverage: ports; Coverage: files                                          |
+  | 6.13.2 Input                                                   | yes    | =read= takes one datum from a file or the terminal and leaves the rest. Bytes that are not UTF-8 on a textual port end the program. Known defects 20                                                                                                                                                                                                                                                     | Eval: string ports; Eval: read-string and port->string; Eval: sequential read and binary ports; Eval: strings and chars; Ports: read on a file port is incremental; Examples: string-ports; Coverage: ports; Coverage: files. Reading from a terminal: none |
+  | 6.13.3 Output                                                  | part   | =write= uses labels for cycles only, =write-shared= for everything shared, =write-simple= never. =write= shortens the list =(unquote @a)= to =,@a=, which reads back as another datum. Known defects 14. What is written to a file port that is still open when the program ends is lost. Known defects 19                                                                                               | Printer; Property; Eval: equivalence and printing of shared structure; golden: output; golden: string-ports; Examples: string-ports; Coverage: ports; Coverage: files                                                                                       |
+  | 6.14 load, file-exists?, delete-file                           | yes    | =load= takes an optional environment                                                                                                                                                                                                                                                                                                                                                                     | Coverage: files                                                                                                                                                                                                                                             |
+  | 6.14 command-line, exit, emergency-exit, environment variables | yes    | =exit= runs the pending =dynamic-wind= after thunks, =emergency-exit= does not. =exit= takes =#t=, =#f= or an integer                                                                                                                                                                                                                                                                                    | Ports: exit unwinds dynamic-wind and reports its code; Ports: emergency-exit skips dynamic-wind; Eval: definitions and derived forms; Coverage: system interface                                                                                            |
+  | 6.14 current-second, current-jiffy, jiffies-per-second         | yes    | =current-second= is on the TAI scale: Unix time plus 37 seconds, or plus =IOTA_TAI_OFFSET= when that is set. A jiffy is a nanosecond                                                                                                                                                                                                                                                                     | Eval: definitions and derived forms, for the exactness of the results. The values and the offset: none                                                                                                                                                      |
+  | 6.14 features                                                  | yes    | the list =cond-expand= uses                                                                                                                                                                                                                                                                                                                                                                              | Eval: cond-expand and features                                                                                                                                                                                                                              |
+  | Appendix A: (scheme r5rs)                                      | yes    | with =syntax-rules= and the auxiliary syntax that the errata add                                                                                                                                                                                                                                                                                                                                         | Eval: libraries and environments; Coverage: environments                                                                                                                                                                                                    |
+
+** Procedures that no test calls
+   :PROPERTIES:
+   :CUSTOM_ID: procedures-that-no-test-calls
+   :END:
+
+   None. Each of the 339 names the standard libraries export is used
+   by at least one test in =test/Test=, =test/scheme= or =examples=,
+   directly or through the standard library.
+
+   For about a third of them that test is in =Coverage=, which was
+   written to close this gap: the accessors of =(scheme cxr)=, most of
+   the character and string comparisons, the trigonometric procedures,
+   =gcd= and =lcm=, the port predicates, the procedures of
+   =(scheme file)= and others. =Coverage= gives each of them one or
+   two simple calls. That shows the procedure is there and gets the
+   plain case right. It says little about the corners.
+
+* Conformance suite
+  :PROPERTIES:
+  :CUSTOM_ID: conformance-suite
+  :END:
+
+  The tables above rest on iota's own tests. As an outside check, iota
+  is also run against the R7RS test suite of [[https://github.com/ashinn/chibi-scheme][chibi-scheme]],
+  =tests/r7rs-tests.scm=, pinned at commit =18e561ee= of 15 November
+  2026. The suite is not part of this repository.
+  =test/conformance/run.sh= fetches it, runs it and compares the totals
+  and the failing tests with the ones recorded in
+  =test/conformance/expected-failures.txt=. [[https://github.com/fuzztheplanet/iota/blob/main/test/conformance/README.org][test/conformance/README.org]]
+  says how.
+
+  The suite has 1234 tests. iota passes 1206 and fails 28.
+
+  | Outcome                                                                               | Tests |
+  |---------------------------------------------------------------------------------------+-------|
+  | pass as written                                                                       |  1198 |
+  | pass once a bytevector literal is rewritten (item 1 under Deviations the suite found) |     8 |
+  | fail because iota deviates from the report                                            |     9 |
+  | fail on something the report does not require                                         |    19 |
+
+  By group of the suite:
+
+  | Group                            | Passed | Failed |
+  |----------------------------------+--------+--------|
+  | 4.1 Primitive expression types   |     27 |      0 |
+  | 4.2 Derived expression types     |     74 |      0 |
+  | 4.3 Macros                       |     23 |      3 |
+  | 5 Program structure              |     15 |      0 |
+  | 6.1 Equivalence Predicates       |     25 |      0 |
+  | 6.2 Numbers                      |    219 |      0 |
+  | 6.3 Booleans                     |     18 |      0 |
+  | 6.4 Lists                        |     65 |      0 |
+  | 6.5 Symbols                      |     17 |      0 |
+  | 6.6 Characters                   |     79 |      0 |
+  | 6.7 Strings                      |    130 |      0 |
+  | 6.8 Vectors                      |     43 |      0 |
+  | 6.9 Bytevectors                  |     39 |      0 |
+  | 6.10 Control Features            |     31 |      3 |
+  | 6.11 Exceptions                  |     30 |      0 |
+  | 6.12 Environments and evaluation |      4 |      0 |
+  | 6.13 Input and output            |     63 |      0 |
+  | Read syntax                      |     90 |      4 |
+  | Numeric syntax                   |    202 |     17 |
+  | 6.14 System interface            |     12 |      1 |
+
+  Read syntax and Numeric syntax are subgroups of 6.13 in the suite.
+
+** Deviations the suite found
+   :PROPERTIES:
+   :CUSTOM_ID: deviations-the-suite-found
+   :END:
+
+   Five defects. Each is a place where the report requires one thing
+   and iota does another. In the list of [[#known-defects][Known defects]] they are items
+   4, 6, 7, 10 and 5, in the order given here.
+
+   1. The reader rejects a radix prefix inside a bytevector literal.
+      =#u8(#x41 #x42)= is a read error, although section 7.1.1 allows
+      any exact integer from 0 to 255 there. The suite writes eight
+      tests of =utf8->string= and =string->utf8= this way. Since iota
+      reads a whole file before running it, the harness rewrites those
+      bytes in decimal, and the eight tests then pass.
+   2. Pattern variables inside an escaped template are not substituted.
+      Section 4.3.2 says that =(... template)= is the template with its
+      ellipses treated as ordinary identifiers. iota copies the whole
+      template literally, pattern variables included. Two tests.
+   3. An ellipsis that is also in the literals list is still treated as
+      the ellipsis. Section 4.3.2 says it is then matched as a literal.
+      The suite's one test of this is rejected when the form is
+      expanded, so the harness removes it and counts it as a failure.
+   4. =map= and =for-each= reject a circular list. Section 6.10 allows
+      circular lists as long as one list is finite. Two tests.
+   5. The sign of an infinite imaginary part is lost when a number is
+      read, so =+inf.0-inf.0i= reads as =+inf.0+inf.0i=. Four tests,
+      two that compare the value and two that write it back.
+
+   What iota answers today:
+
+   #+begin_example
+     iota> (guard (e ((read-error? e) 'read-error)) (read (open-input-string "#u8(#x41 #x42)")))
+     read-error
+     iota> (define-syntax esc (syntax-rules () ((_ x) '(... (x ...)))))
+     iota> (esc 100)
+     (x ...)
+     iota> (define-syntax lit (syntax-rules ... (...) ((_ x ...) 'literal) ((_ . rest) 'other)))
+     iota> (lit 1 2 3)
+     literal
+     iota> (define circle (list 1 2))
+     iota> (set-cdr! (cdr circle) circle)
+     iota> (guard (e (#t 'error)) (map + circle '(10 20 30)))
+     error
+     iota> (imag-part (string->number "1.0-inf.0i"))
+     +inf.0
+   #+end_example
+
+   The report wants =#u8(65 66)=, =(100 ...)=, =other=, =(11 22 31)=
+   and =-inf.0= in that order.
+
+** Failures that are not deviations
+   :PROPERTIES:
+   :CUSTOM_ID: failures-that-are-not-deviations
+   :END:
+
+   The other 19 failing tests expect something R7RS-small does not
+   require.
+
+   - Ten tests read numbers with the exponent markers =s=, =f=, =d= and
+     =l=, as in =1s2=. The grammar of section 7.1.1 has only =e=, and
+     the report's notes say the other four are no longer required. iota
+     reads =1s2= as a symbol.
+   - Three tests expect =read= to raise an error on a malformed datum
+     comment such as =(a #;. b)=. The report only requires an error for
+     input that ends inside a datum. iota reads a lone =.= as the symbol
+     =|.|=, which the grammar does not allow, so the comment swallows
+     the dot and the result is =(a b)=.
+   - One test expects =(apply +)= to raise an error. The report does
+     not require that error to be signalled. iota returns 0.
+   - Two tests accept only =e+308= in the output of =number->string=.
+     iota writes =1.7976931348623157e308=, which reads back as the same
+     number.
+   - One test expects =write= to put bars around the symbol
+     =+NaN.0abc=. iota writes it without bars, and it reads back as the
+     same symbol.
+   - One test expects =(file-exists? ".")= to be =#t=. The report does
+     not say whether a directory is a file. iota answers =#f= for a
+     directory.
+   - One test expects =(string->number "#x4000000000000001/3e1")= to be
+     =#f=. Under the grammar of section 7.1.1 this is a hexadecimal
+     rational, since =e= is a hexadecimal digit, and iota returns
+     4611686018427387905/993.
 
 * Deviations and extensions
   :PROPERTIES:
   :CUSTOM_ID: deviations-and-extensions
   :END:
 
+  The deliberate ones: where iota goes beyond the report, or picks one
+  of the choices it leaves open. The places where iota does not do
+  what the report requires are under [[#known-defects][Known defects]]. Each item ends
+  with its tests, named as in the tables.
+
   1. A complex number is exact only when both parts are. Mixing an
      exact and an inexact part makes both inexact, so =1+2.0i= is
      =1.0+2.0i=. A real number with an inexact zero imaginary part stays
-     complex, as in the report, so =(real? 1.0+0.0i)= is =#f=.
-  2. The repl and scripts start with every standard library imported.
-     An explicit =(import ...)= is accepted and is what a portable
-     program should write. A =define-library= starts empty.
-  3. Extensions: =[= and =]= as parentheses, =named-lambda=, curried
-     =define=, =(define x)=, =(force x)= returning =x= when =x= is not a
-     promise, one-argument =eval= in the interaction environment, and the
-     =(iota extras)= library.
+     complex, as in the report, so =(real? 1.0+0.0i)= is =#f=. Tests:
+     Number; Eval: complex numbers.
+  2. The repl and scripts start with every standard library and
+     =(iota extras)= imported. An explicit =(import ...)= is accepted
+     and is what a portable program should write. A =define-library=
+     starts empty. Tests: Eval: stdlib; Eval: import and
+     define-library; Coverage: program structure.
+  3. Extensions:
+     - =[= and =]= as parentheses. Tests: Reader: lists.
+     - An atom that does not read as a number is an identifier, so =1+=
+       and =1-= are identifiers although they start with a digit, and a
+       dot on its own, where a datum is expected, is the symbol written
+       =|.|=. Tests: Reader: atoms, for =1+=.
+     - =named-lambda=, as in MIT Scheme. =(named-lambda (name arg ...)
+       body ...)= is a =lambda= whose procedure prints as
+       =#<procedure name>=. The name is not bound in the body. Tests:
+       Coverage: program structure, but not for the last point.
+     - Curried =define=. =(define ((f a) b) ...)= defines =f= as a
+       procedure of =a= that returns a procedure of =b=. Tests:
+       Coverage: program structure.
+     - =(define x)= with no value. =x= is bound, and reading it before
+       it has a value is an error. In a body =set!= gives it one. At
+       the top level that does not work, see [[#known-defects][Known defects]]. Tests:
+       Coverage: program structure, for the body.
+     - In =define-record-type=, =#f= in place of the constructor or of
+       the predicate defines none, and a constructor written as a bare
+       name takes every field in order. Tests: Coverage: program
+       structure.
+     - =(force x)= returns =x= when =x= is not a promise. Tests: Eval:
+       promises and parameters.
+     - =eval= with one argument uses the interaction environment.
+       Tests: Eval: eval.
+     - A program may define a name it has imported, and the definition
+       replaces the import in that program. Assigning an imported name
+       with =set!= is a syntax error. Tests: Coverage: program
+       structure; Coverage: expressions.
+     - =(scheme r5rs)= also exports =unquote= and =unquote-splicing=.
+       Tests: none.
+     - The =(iota extras)= library, described on
+       [[file:procedures.org::#iota-extras][Libraries and procedures]]. Tests: Eval: stdlib.
   4. =(eqv? (vector) (vector))= is =#f=, since they are fresh objects.
-     The report leaves it unspecified.
-  5. A continuation captured inside a =define-library= body, or across
-     top level forms of a program, and invoked after that body has
-     finished re-enters a computation nobody is waiting for. The report
-     leaves this to the implementation and I have not needed anything
-     better.
+     The same goes for two empty strings or bytevectors. The report
+     leaves it unspecified. Tests: Eval: strings and chars; Coverage:
+     equivalence.
+  5. A continuation captured inside a =define-library= body and invoked
+     after the library has been loaded runs the rest of that body and
+     then stops. The program that invoked it does not go on: its
+     remaining forms never run, and nothing is reported. Inside a
+     program a continuation can be re-entered across top level forms,
+     and in the repl across inputs. Tests: Eval: re-entrant
+     continuations and dynamic-wind, for top level forms. The library
+     case: none.
   6. Literal constants are immutable. That covers quoted data, string,
-     vector and bytevector literals, and the result of =symbol->string=.
-     The mutators raise an error instead of silently changing program
-     text.
+     vector and bytevector literals, a quasiquoted form with nothing
+     unquoted in it, and the result of =symbol->string=. The mutators
+     signal an error instead of silently changing program text. Tests:
+     Eval: strings and chars; Coverage: literal constants.
   7. A definition after an expression in a body is a syntax error. The
-     top level is not affected.
+     top level is not affected. Tests: Eval: strings and chars.
+  8. =(features)= and =cond-expand= do not list =exact-complex=,
+     although complex numbers with exact parts are supported. Tests:
+     Eval: cond-expand and features, for the list as it is.
+  9. =(exit obj)= takes =#t=, =#f= or an integer. Any other object is
+     an error, not an exit. An integer other than 0 becomes a status
+     from 1 to 255. Tests: Ports: exit unwinds dynamic-wind and
+     reports its code, for one integer; Coverage: system interface, for
+     =#t=, =#f= and no argument.
+  10. Some things the report calls an error without requiring a signal
+      are not signalled. A numeric predicate such as =zero?= or
+      =exact?= answers =#f= for an object that is not a number,
+      =(apply +)= is 0, and =utf8->string= decodes invalid bytes as
+      the replacement character U+FFFD. Tests: none, on purpose. These
+      are not answers to hold in place.
+
+* Known defects
+  :PROPERTIES:
+  :CUSTOM_ID: known-defects
+  :END:
+
+  The places known so far where iota does not do what the report
+  requires. It is not a complete list: each review of this page has
+  added to it. Items 4, 5, 6, 7 and 10 were found by the
+  conformance suite and are described under [[#deviations-the-suite-found][Deviations the suite found]],
+  and =test/conformance/run.sh= notices when one of them is fixed. The
+  others were found by reading the report against the interpreter. No
+  test in the repository covers them, since a test would have to
+  expect the wrong answer.
+
+  1. A dotted tail that is itself a list is not taken as that list
+     when the datum is code. =(+ . (1 2))= is the same datum as
+     =(+ 1 2)=, but iota answers =bad syntax in expression (improper
+     list)=. The usual way to meet this is a =syntax-rules= template
+     with a dotted tail: =(f . args)= or =(lambda formals . body)=
+     expands into such a form and fails the same way. Writing the
+     pattern and the template with an ellipsis, =(f arg ...)=, avoids
+     it. In the same way =(1 unquote x)= inside a quasiquote is not
+     taken as =(1 . ,x)=. As data, a list written like this is read
+     correctly.
+  2. The reader fails on a label that is used again after a labelled
+     datum which refers to itself. Reading ~(#0=(1 . #0#) #0#)~ does
+     not return, from a port or as a quoted literal in a program, and
+     ~#0=(a #1=(b #0#) #1#)~ ends with =stack overflow=. The first is
+     what =write= prints for a list that holds the same circular list
+     twice, so iota cannot read back everything it writes.
+  3. =#!fold-case= and =#!no-fold-case= hold for the rest of the datum
+     being read, not for the rest of the port. With a port on the text
+     =#!fold-case ABC DEF=, the first =read= returns =abc= and the
+     second =DEF=. A source file is read in one go, so there a
+     directive lasts to the end of the file.
+  4. A radix prefix inside a bytevector literal, as in =#u8(#x41)=, is
+     a read error.
+  5. The sign of an infinite imaginary part is lost when a number is
+     read, by the reader and by =string->number=: =1.0-inf.0i= reads as
+     =1.0+inf.0i=.
+  6. =syntax-rules= does not substitute pattern variables inside an
+     escaped template, =(... template)=.
+  7. An ellipsis that =syntax-rules= is given among its literals is
+     still treated as the ellipsis.
+  8. =number->string= signals an error for an inexact number when the
+     radix is not 10. The report asks for a string that
+     =string->number= reads back in that radix, and there is one:
+     =#i1/10= in radix 2 for 0.5.
+  9. Three things in the handling of Unicode. =char-alphabetic?=,
+     =char-upper-case?= and =char-lower-case?= go by the general
+     category of a character, where the report names the properties
+     Alphabetic, Uppercase and Lowercase. They are wrong for U+2160, a
+     Roman numeral that is alphabetic and upper case, for U+24D0, a
+     circled letter that is lower case, and for U+01C5, a title case
+     letter that is not upper case. =char-foldcase=, and with it the
+     =char-ci= comparisons, folds both U+0130 and U+0131 to =i=, which
+     the simple case folding does not. =string-downcase= writes σ for
+     a sigma at the end of a word, where the full lower-casing writes
+     ς.
+  10. =map= and =for-each= reject a circular list.
+  11. =null-environment= returns the same environment as
+      =scheme-report-environment=, with the procedures of
+      =(scheme r5rs)= as well as its syntax, where the report wants
+      the syntactic keywords only. =(eval 'car (null-environment 5))=
+      returns the procedure. Both procedures accept any version
+      argument, or none.
+  12. =input-port?= and =output-port?= answer =#f= for a port that has
+      been closed. In the report they say what kind of port an object
+      is, and =input-port-open?= and =output-port-open?= say whether
+      it is open. =textual-port?= and =binary-port?= are not affected.
+  13. =get-output-string= and =get-output-bytevector= signal an error
+      once their port has been closed. What a string port collected
+      can therefore not be fetched after =call-with-port= has closed
+      it.
+  14. =write= prints the two-element list =(unquote @a)= as =,@a=,
+      which reads back as =(unquote-splicing a)=.
+
+  The rest are defects in what iota adds to the report, or in things
+  the report leaves to the implementation:
+
+  15. [@15] After =(define x)= at the top level, =(set! x 1)= fails
+      with =unbound variable: x=. Only another =define= gives =x= a
+      value.
+  16. =eval= of a datum that is circular through a =car= or through a
+      vector element does not return. The interpreter runs out of
+      stack and exits with =stack overflow=. A list that is circular
+      through its =cdr= is reported as an error.
+  17. An uncaught error in a script is reported with the file, line
+      and column of the top level form it happened in. That prefix is
+      missing when the error happens inside a file reached through
+      =load= or =import=, and for the rest of a top level form once
+      that form has called =load= or imported a library from a file.
+  18. An =include= inside an included file is looked up from the
+      directory of the outer file, the program or library being
+      processed, not from the directory of the file it is written in.
+  19. What a program writes to a file port is lost if the port is
+      still open when the program ends, with or without =exit=. Only
+      the standard output and the standard error are flushed. Closing
+      the port, or =flush-output-port=, writes the text out.
+  20. Bytes that are not valid UTF-8, read from a textual file port or
+      from the standard input, end the program. The failure is not a
+      Scheme error, so =guard= and =with-exception-handler= do not see
+      it.
+  21. =error= with a first argument that is not a string, as in
+      =(error 'my-proc "msg" 42)=, raises =expected a string= in place
+      of the caller's error, and the message and the irritants are
+      lost. The report says the message should be a string.
+  22. =min= and =max= with a NaN depend on the order of their
+      arguments: =(min 0.0 +nan.0)= is =0.0= and =(min +nan.0 0.0)= is
+      =+nan.0=.

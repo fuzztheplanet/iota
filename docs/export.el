@@ -1,8 +1,11 @@
 ;;; export.el --- batch HTML export of the iota docs  -*- lexical-binding: t -*-
 
-;; The Makefile loads this before exporting each page.  The HTML is
-;; checked in and served by GitHub Pages, so the same .org file has to
-;; give the same .html every time.
+;; The Makefile loads this before exporting each page.  The same .org
+;; file gives the same .html every time, whoever builds it and when, so
+;; a page only changes when its source does.  That is why nothing here
+;; looks at the clock, the user or the machine: the navigation bar comes
+;; from the list below and the footer from the version field of
+;; ../iota.cabal.
 
 (require 'subr-x)
 (require 'ucs-normalize)
@@ -10,6 +13,10 @@
 
 ;; Prism highlights source blocks in the browser.
 (setq org-html-htmlize-output-type nil)
+
+;; Org would otherwise put the full name of whoever runs the export into
+;; a meta tag on every page.
+(setq org-export-with-author nil)
 
 ;;; Heading ids
 
@@ -88,5 +95,76 @@ Possessives, link and math markup and other punctuation are dropped."
 ;; The few other elements that get an id, such as example blocks, still
 ;; go through `random'.  A fixed seed keeps those stable too.
 (random "iota-docs")
+
+;;; Navigation bar and footer
+
+(defconst iota-docs-pages
+  '(("index.org" . "Home")
+    ("install.org" . "Install")
+    ("tutorial.org" . "Tutorial")
+    ("examples.org" . "Examples")
+    ("guide.org" . "Guide")
+    ("procedures.org" . "Procedures")
+    ("r7rs-coverage.org" . "Coverage")
+    ("architecture.org" . "Architecture")
+    ("hacking.org" . "Hacking"))
+  "The pages of the site in navigation order, as (FILE . LABEL).
+A page that is not listed here does not export.")
+
+(defconst iota-docs-api "api/index.html"
+  "The Haddock pages, relative to the site root.  make api writes them.")
+
+(defconst iota-docs-repository "https://github.com/fuzztheplanet/iota"
+  "Where the sources are browsed.  The footer links there.")
+
+(defun iota-docs--page (info)
+  "The file name of the page being exported, checked against the list."
+  (let ((page (file-name-nondirectory (plist-get info :input-file))))
+    (unless (assoc page iota-docs-pages)
+      (error "%s is not in iota-docs-pages in export.el" page))
+    page))
+
+(defun iota-docs--version (info)
+  "The version field of the iota.cabal one directory above the page."
+  (let ((cabal (expand-file-name
+                "../iota.cabal"
+                (file-name-directory (plist-get info :input-file)))))
+    (with-temp-buffer
+      (insert-file-contents cabal)
+      (if (re-search-forward "^version:[ \t]*\\([^ \t\n]+\\)" nil t)
+          (match-string 1)
+        (error "No version field in %s" cabal)))))
+
+(defun iota-docs-preamble (info)
+  "The navigation bar.  The current page is marked, not left out."
+  (let ((current (iota-docs--page info)))
+    (concat
+     "<nav class=\"site-nav\" aria-label=\"Site\">\n"
+     (mapconcat
+      (lambda (page)
+        (format "<a href=\"%s.html\"%s>%s</a>\n"
+                (file-name-sans-extension (car page))
+                (if (string= (car page) current) " aria-current=\"page\"" "")
+                (cdr page)))
+      iota-docs-pages "")
+     (format "<a href=\"%s\">API</a>\n" iota-docs-api)
+     "</nav>")))
+
+(defun iota-docs-postamble (info)
+  "The footer: the version, the Org source of the page and the changelog."
+  (format (concat "<p>iota %s. "
+                  "<a href=\"%s/blob/main/docs/%s\">Source of this page</a>. "
+                  "<a href=\"%s/blob/main/CHANGELOG.org\">Changelog</a>.</p>")
+          (iota-docs--version info)
+          iota-docs-repository
+          (iota-docs--page info)
+          iota-docs-repository))
+
+(setq org-html-preamble #'iota-docs-preamble
+      org-html-postamble #'iota-docs-postamble
+      ;; HTML5 elements around the three parts of a page.
+      org-html-divs '((preamble "header" "preamble")
+                      (content "main" "content")
+                      (postamble "footer" "postamble")))
 
 ;;; export.el ends here

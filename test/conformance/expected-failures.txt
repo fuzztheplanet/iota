@@ -1,0 +1,55 @@
+# What a run of chibi-scheme's tests/r7rs-tests.scm, at the commit pinned
+# in run.sh, must report. run.sh compares a run with this file and fails
+# when they differ. Fields are separated by tabs. Lines starting with # and
+# empty lines are ignored.
+#
+# First the totals, as run.sh prints them: how many tests the suite has and
+# how many of them pass. They are pinned because the list of failures alone
+# would not show a change that makes tests disappear.
+tests	1234
+passed	1206
+
+# Then the tests iota is known to fail, one per line, in five fields:
+#
+#   group   test   #n   class   note
+#
+# The first three identify the test, as run.sh prints them: its group, its
+# name (or its expression as written) and its number among the tests of
+# that name in the group. Only those three are compared.
+#
+# Classes:
+#   deviation           R7RS-small requires another result
+#   optional            the suite tests something the report makes optional
+#   error-not-required  the suite expects an error the report does not
+#                       require an implementation to signal
+#   unspecified         the report leaves the result open and the suite
+#                       expects one choice
+#   suite               the suite's expectation is not supported by the report
+4.3 Macros	(elli-esc-1 100)	#1	deviation	4.3.2: pattern variables inside (... template) are not substituted
+4.3 Macros	(elli-esc-1 100 200)	#1	deviation	4.3.2: pattern variables inside (... template) are not substituted
+4.3 Macros	(elli-lit-1 100)	#1	deviation	4.3.2: an ellipsis in the literals list is still treated as the ellipsis; not run, see workaround 2 in run.sh
+6.10 Control Features	(apply +)	#1	error-not-required	the report does not require this error to be signalled; iota returns 0
+6.10 Control Features	(let ((ls1 (list 10 100 1000)) (ls2 (list 1 2 3 4 5 6))) (set-cdr! (cddr ls1) ls1) (map * ls1 ls2))	#1	deviation	6.10: map must accept a circular list when another list is finite
+6.10 Control Features	(let ((ls1 (list 10 100 1000)) (ls2 (list 1 2 3 4 5 6)) (count 0)) (set-cdr! (cddr ls1) ls1) (for-each (lambda (x y) (set! count (+ count (* x y)))) ls2 ls1) count)	#1	deviation	6.10: for-each must accept a circular list when another list is finite
+Read syntax	(a #;. b)	#1	error-not-required	malformed input; iota reads a lone . after #; as the symbol |.|
+Read syntax	(#; #;x #;y . z)	#1	error-not-required	malformed input; iota reads a lone . after #; as the symbol |.|
+Read syntax	(#; #;x . z)	#1	error-not-required	malformed input; iota reads a lone . after #; as the symbol |.|
+Read syntax	(get-output-string out)	#18	unspecified	write of the symbol +NaN.0abc without bars; it reads back as the same symbol
+Numeric syntax	(values z)	#19	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#20	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#21	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#22	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#23	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#24	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#25	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#26	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#59	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#61	optional	s, f, d and l exponent markers, which R7RS no longer requires
+Numeric syntax	(values z)	#66	deviation	7.1.1: the sign of an infinite imaginary part is lost when reading
+Numeric syntax	(and (member z-str '("-inf.0-inf.0i" "-Inf.0-Inf.0i")) #t)	#1	deviation	follows from the misread number above
+Numeric syntax	(values z)	#67	deviation	7.1.1: the sign of an infinite imaginary part is lost when reading
+Numeric syntax	(and (member z-str '("+inf.0-inf.0i" "+Inf.0-Inf.0i")) #t)	#1	deviation	follows from the misread number above
+Numeric syntax	(string->number "#x4000000000000001/3e1")	#1	suite	7.1.1 makes this a valid hexadecimal rational; the suite expects #f
+Numeric syntax	(member? -1.7976931348623157e308 ("-1.7976931348623157e+308" "-inf.0"))	#1	unspecified	number->string writes e308 where the suite accepts only e+308; the value round-trips
+Numeric syntax	(member? 1.7976931348623157e308 ("1.7976931348623157e+308" "+inf.0"))	#1	unspecified	number->string writes e308 where the suite accepts only e+308; the value round-trips
+6.14 System interface	(file-exists? ".")	#1	unspecified	the report does not say whether a directory is a file; iota answers #f

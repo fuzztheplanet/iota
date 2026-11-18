@@ -1,7 +1,12 @@
--- | Values back to text. write, write-shared, write-simple and display
--- are one traversal with two settings. One says whether strings and
--- characters get quoted. The other says which objects get a @#n=@ label,
--- none, cycles only, or everything that is shared.
+-- | Values back to text. @write@, @write-shared@, @write-simple@ and
+-- @display@ are one traversal, 'renderValue', with the two settings of
+-- a 'Style'. One says whether strings and characters get quoted. The
+-- other says which objects get a @#n=@ label, none, cycles only, or
+-- everything that is shared.
+--
+-- The functions on values run in 'Eval' because they read mutable
+-- objects. None of them writes to a port. They return the text and the
+-- caller decides where it goes.
 module Iota.Printer
   ( -- * Values
     writeText
@@ -36,6 +41,7 @@ import Iota.Types
 import Iota.Value (identBase, stringText)
 import Numeric (showHex)
 
+-- | The two choices that tell the four output procedures apart.
 data Style = Style
   { -- | write quotes, display does not.
     styleMachine :: !Bool
@@ -44,9 +50,15 @@ data Style = Style
     styleLabels :: !(Maybe Bool)
   }
 
+-- | @write@. Strings and characters are quoted, and an object that
+-- contains itself gets a datum label, so cyclic data prints in finite
+-- space. Structure that is merely shared is written out each time.
+-- This is also what the repl prints a result with.
 writeText :: Value -> Eval Text
 writeText = renderValue (Style True (Just False))
 
+-- | @write-shared@. As 'writeText', but every pair, vector or record
+-- reached more than once gets a label, cyclic or not.
 writeSharedText :: Value -> Eval Text
 writeSharedText = renderValue (Style True (Just True))
 
@@ -55,11 +67,17 @@ writeSharedText = renderValue (Style True (Just True))
 writeSimpleText :: Value -> Eval Text
 writeSimpleText = renderValue (Style True Nothing)
 
+-- | @display@. Strings and characters are written raw and symbols
+-- without bars, at any depth. Cycles are labelled as in 'writeText'.
 displayText :: Value -> Eval Text
 displayText = renderValue (Style False (Just False))
 
 -- The shared traversal
 
+-- | The traversal behind the four functions above. With labels on it
+-- walks the value twice, once to find what needs a label and once to
+-- print. Multiple values come out one per line and zero values as the
+-- empty text.
 renderValue :: Style -> Value -> Eval Text
 renderValue style value = do
   toLabel <- case styleLabels style of
@@ -318,9 +336,14 @@ writeDatum = \case
 
 -- Errors
 
--- | Error messages for the REPL and the CLI. This runs in IO so it can
--- print the offending value in full. The Show instance on 'SchemeError'
--- cannot follow references and prints @#<pair>@ instead.
+-- | Error messages for the repl and the command line. This runs in IO
+-- so it can print the offending value in full. The Show instance on
+-- 'SchemeError' goes through 'shallowShow', which cannot follow
+-- references and prints @#\<pair>@ instead. A read error loses the
+-- newline the parser ends its report with. The message of an @error@
+-- call is used as it is, a trailing newline included. The location of
+-- the top level form is not part of the result.
+-- 'Iota.Interpreter.runText' puts that in front.
 formatError :: SchemeError -> Eval Text
 formatError = \case
   ParseFailure t -> pure ("read error:\n" <> T.stripEnd t)

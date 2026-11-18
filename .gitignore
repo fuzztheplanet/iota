@@ -12,4 +12,16 @@ result
 result-*
 TAGS
 tags
-.iota_history
+test/conformance/.cache/
+
+# The documentation site, built by make docs and published by the CI
+# workflow. docs/iota.html is the exception: it is written by hand and
+# forwards the old address of the user's guide.
+docs/*.html
+!docs/iota.html
+docs/api/
+
+# Editor leftovers
+*~
+\#*\#
+.\#*

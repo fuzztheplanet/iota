@@ -1,0 +1,53 @@
+;; Parameters: variables with dynamic scope. parameterize gives one a
+;; new value for the duration of a body, in every procedure called
+;; from that body, and puts the old value back afterwards.
+
+(import (scheme base) (scheme write))
+
+(define indent (make-parameter 0))
+
+(define (say . xs)
+  (display (make-string (indent) #\space))
+  (for-each display xs)
+  (newline))
+
+(define (report)
+  (say "indent is " (indent)))
+
+(report)
+(parameterize ((indent 4))
+  (report)
+  (parameterize ((indent 8))
+    (report))
+  (report))
+(report)
+
+;; A converter is applied to the initial value and to every value
+;; given in a parameterize.
+(define radix
+  (make-parameter 10
+                  (lambda (r)
+                    (if (memv r '(2 8 10 16))
+                        r
+                        (error "unsupported radix" r)))))
+
+(define (render n)
+  (number->string n (radix)))
+
+(say (render 255))
+(parameterize ((radix 16)) (say (render 255)))
+(parameterize ((radix 2)) (say (render 255)))
+
+(guard (e ((error-object? e)
+           (say (error-object-message e) " " (error-object-irritants e))))
+  (parameterize ((radix 7)) (say (render 255))))
+
+;; The current ports are parameters. This sends everything say prints
+;; into a string instead of to the terminal.
+(define captured
+  (let ((port (open-output-string)))
+    (parameterize ((current-output-port port))
+      (say "this goes to the string port"))
+    (get-output-string port)))
+
+(say "captured " (string-length captured) " characters")

@@ -1,0 +1,43 @@
+;; A first-in first-out queue. The library keeps its record type and a
+;; helper to itself, and exports one procedure under another name.
+
+(define-library (my queue)
+  (import (scheme base))
+  (export make-queue
+          enqueue!
+          dequeue!
+          (rename queue-empty? empty?))
+  (begin
+    ;; Not exported, so an importer can only build and take apart a
+    ;; queue through the procedures below. New items are consed onto
+    ;; back. Items leave from front.
+    (define-record-type queue
+      (new-queue front back)
+      queue?
+      (front queue-front set-queue-front!)
+      (back queue-back set-queue-back!))
+
+    (define (make-queue)
+      (new-queue '() '()))
+
+    ;; Not exported either. Turns the back list round so the oldest
+    ;; item comes first.
+    (define (refill! q)
+      (set-queue-front! q (reverse (queue-back q)))
+      (set-queue-back! q '()))
+
+    (define (enqueue! q x)
+      (set-queue-back! q (cons x (queue-back q))))
+
+    (define (dequeue! q)
+      (when (null? (queue-front q))
+        (refill! q))
+      (when (null? (queue-front q))
+        (error "dequeue!: the queue is empty"))
+      (let ((x (car (queue-front q))))
+        (set-queue-front! q (cdr (queue-front q)))
+        x))
+
+    (define (queue-empty? q)
+      (and (null? (queue-front q))
+           (null? (queue-back q))))))

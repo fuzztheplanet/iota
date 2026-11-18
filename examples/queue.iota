@@ -1,0 +1,40 @@
+;; More about libraries: renaming on export and on import, and names
+;; that stay private. (my queue) lives in my/queue.iota, next to this
+;; script.
+;;
+;; The library exports its emptiness test as empty?. This import gives
+;; it back a longer name, because a bare empty? says little here.
+
+(import (scheme base)
+        (scheme write)
+        (rename (my queue) (empty? queue-empty?)))
+
+(define q (make-queue))
+
+(enqueue! q 'first)
+(enqueue! q 'second)
+(write (dequeue! q))
+(newline)
+
+(enqueue! q 'third)
+
+(let loop ()
+  (unless (queue-empty? q)
+    (write (dequeue! q))
+    (newline)
+    (loop)))
+
+;; An error raised inside the library reaches the importer as usual.
+(guard (e ((error-object? e)
+           (display (error-object-message e))
+           (newline)))
+  (dequeue! q))
+
+;; Only exported names are visible. refill! is defined inside the
+;; library, but for this program it is an unbound variable.
+(guard (e ((error-object? e)
+           (display (error-object-message e))
+           (display ": ")
+           (write (car (error-object-irritants e)))
+           (newline)))
+  (refill! q))

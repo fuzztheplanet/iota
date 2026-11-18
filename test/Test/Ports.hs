@@ -3,28 +3,17 @@
 -- codes.
 module Test.Ports (tests) where
 
-import Control.Exception (try)
+import Control.Exception (ErrorCall (..), throwIO, try)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as TIO
 import Iota.Interpreter
-import System.Directory (createDirectoryIfMissing, getTemporaryDirectory, removeDirectoryRecursive)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Exit (ExitCode (..))
 import System.FilePath ((</>))
 import Test.Tasty
 import Test.Tasty.HUnit
-
--- | A scratch directory per test, since they run in parallel. Removed
--- afterwards.
-withSandbox :: String -> (FilePath -> IO a) -> IO a
-withSandbox name action = do
-  tmp <- getTemporaryDirectory
-  let dir = tmp </> ("iota-test-" <> name)
-  _ <- try @IOError (removeDirectoryRecursive dir)
-  createDirectoryIfMissing True dir
-  r <- action dir
-  _ <- try @IOError (removeDirectoryRecursive dir)
-  pure r
+import Test.Util (withSandbox)
 
 -- | Write the source to the path, run it, and return what it displayed
 -- and the error if there was one.
@@ -66,6 +55,19 @@ tests =
         case r of
           Left msg -> assertBool ("message: " <> T.unpack msg) ((T.pack (dir </> "bad.iota") <> ":3:1: expected a pair, got: 1") == msg)
           Right _ -> assertFailure "expected an error"
+    , -- A file is read to the end before any of it runs. Expansion is per
+      -- form, after the forms in front of it have run.
+      testCase "a read error anywhere in a file means none of it runs" $ withSandbox "read-error" $ \dir -> do
+        (out, err) <- runProgram (dir </> "unbalanced.iota") "(display \"a\")\n(newline)\n(display \"b\"\n"
+        out @?= ""
+        case err of
+          Just msg -> assertBool ("message: " <> T.unpack msg) ("read error:" `T.isPrefixOf` msg)
+          Nothing -> assertFailure "expected a read error"
+    , testCase "an expansion error is reported after the forms before it have run" $ withSandbox "expansion-error" $ \dir -> do
+        let path = dir </> "badsyntax.iota"
+        (out, err) <- runProgram path "(display \"a\")\n(if)\n(display \"c\")\n"
+        out @?= "a"
+        err @?= Just (T.pack path <> ":2:1: bad syntax in if: (if)")
     , testCase "exit unwinds dynamic-wind and reports its code" $ do
         interp <- newInterpreter
         (r, out) <- captureOutput interp $ try @ExitCode (runText interp "<t>" "(dynamic-wind (lambda () #f) (lambda () (exit 3)) (lambda () (display \"after\")))")
@@ -78,6 +80,22 @@ tests =
         case r of
           Left (ExitFailure 4) -> out @?= ""
           other -> assertFailure ("unexpected: " <> show (fmap (fmap (const ())) other))
+    , -- The scratch directories these tests use. Several test processes may
+      -- share one temporary directory, so a name is never used twice, and
+      -- a test that fails must not leave its files behind.
+      testCase "two sandboxes of one name are two directories" $
+        withSandbox "same" $ \one ->
+          withSandbox "same" $ \other -> do
+            assertBool "the same directory twice" (one /= other)
+            mapM_ (\dir -> doesDirectoryExist dir >>= assertBool (dir <> " does not exist")) [one, other]
+    , testCase "a sandbox is removed when its test throws" $ do
+        r <- try $ withSandbox "throws" $ \dir -> do
+          TIO.writeFile (dir </> "file.txt") "content"
+          _ <- throwIO (ErrorCall dir)
+          pure ()
+        case r of
+          Left (ErrorCall dir) -> doesDirectoryExist dir >>= assertBool (dir <> " is still there") . not
+          Right () -> assertFailure "the action did not throw"
     , testCase "an uncaught error resets the dynamic state" $ do
         interp <- newInterpreter
         _ <- runTextForOutput interp "<t>" "(define p (make-parameter 10)) (parameterize ((p 5)) (car 1))"

@@ -27,6 +27,11 @@ import Iota.Value
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (hFlush, stderr, stdout)
 
+-- | The control procedures, closed over the runtime whose dynamic
+-- state they change. The names that start with @%@, such as @%guard@,
+-- @%parameterize@ and the record constructors, are what the expander's
+-- rewrites and the stdlib call. No library exports them, so a program
+-- cannot reach them.
 controlPrimitives :: Runtime -> [(Symbol, Value)]
 controlPrimitives rt =
   [ primK "apply" (AtLeast 1) $ \args k -> case args of

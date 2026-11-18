@@ -1,0 +1,878 @@
+#+TITLE: Libraries and procedures
+#+DESCRIPTION: Every name exported by the standard libraries of iota, and a reference for the non-standard (iota extras) library.
+#+SETUPFILE: setup.org
+#+OPTIONS: num:nil
+
+This page lists every name that each library exports. The
+[[#index][index of names]] at the end has all of them in one table: which
+libraries export a name, whether it is a procedure or syntax, and
+where it is described. Syntax such as =if= and auxiliary syntax such
+as =else= are listed with the procedures, because a library exports
+them in the same way.
+
+The repl, scripts and =iota eval= start with all of these libraries
+imported, so every name here can be used without an =import=. A
+=define-library= starts empty and sees only what it imports. The same
+goes for an environment made with =(environment ...)=. How =import=
+works is described under [[file:guide.org::#libraries][Libraries]] in the
+user's guide.
+
+The =(scheme ...)= lists are those of Appendix A of the report with
+its errata applied. The one place where iota adds to them is noted
+under [[#scheme-r5rs][(scheme r5rs)]]. The [[#iota-extras][(iota extras)]] library is not part
+of R7RS-small, and a portable program should not rely on it.
+
+* (scheme base)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-base
+  :END:
+
+  #+begin_example
+    * + - ... / < <= = => > >= _ abs and append apply assoc assq assv
+    begin binary-port? boolean=? boolean? bytevector bytevector-append
+    bytevector-copy bytevector-copy! bytevector-length bytevector-u8-ref
+    bytevector-u8-set! bytevector? caar cadr
+    call-with-current-continuation call-with-port call-with-values
+    call/cc car case cdar cddr cdr ceiling char->integer char-ready?
+    char<=? char<? char=? char>=? char>? char? close-input-port
+    close-output-port close-port complex? cond cond-expand cons
+    current-error-port current-input-port current-output-port define
+    define-record-type define-syntax define-values denominator do
+    dynamic-wind else eof-object eof-object? eq? equal? eqv? error
+    error-object-irritants error-object-message error-object? even?
+    exact exact-integer-sqrt exact-integer? exact? expt features
+    file-error? floor floor-quotient floor-remainder floor/
+    flush-output-port for-each gcd get-output-bytevector
+    get-output-string guard if include include-ci inexact inexact?
+    input-port-open? input-port? integer->char integer? lambda lcm
+    length let let* let*-values let-syntax let-values letrec letrec*
+    letrec-syntax list list->string list->vector list-copy list-ref
+    list-set! list-tail list? make-bytevector make-list make-parameter
+    make-string make-vector map max member memq memv min modulo
+    negative? newline not null? number->string number? numerator odd?
+    open-input-bytevector open-input-string open-output-bytevector
+    open-output-string or output-port-open? output-port? pair?
+    parameterize peek-char peek-u8 port? positive? procedure? quasiquote
+    quote
+    quotient raise raise-continuable rational? rationalize
+    read-bytevector read-bytevector! read-char read-error? read-line
+    read-string read-u8 real? remainder reverse round set! set-car!
+    set-cdr! square string string->list string->number string->symbol
+    string->utf8 string->vector string-append string-copy string-copy!
+    string-fill! string-for-each string-length string-map string-ref
+    string-set! string<=? string<? string=? string>=? string>? string?
+    substring symbol->string symbol=? symbol? syntax-error syntax-rules
+    textual-port? truncate truncate-quotient truncate-remainder
+    truncate/ u8-ready? unless unquote unquote-splicing utf8->string
+    values vector vector->list vector->string vector-append vector-copy
+    vector-copy! vector-fill! vector-for-each vector-length vector-map
+    vector-ref vector-set! vector? when with-exception-handler
+    write-bytevector write-char write-string write-u8 zero?
+  #+end_example
+
+* (scheme case-lambda)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-case-lambda
+  :END:
+
+  #+begin_example
+    case-lambda
+  #+end_example
+
+* (scheme char)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-char
+  :END:
+
+  #+begin_example
+    char-alphabetic? char-ci<=? char-ci<? char-ci=? char-ci>=? char-ci>?
+    char-downcase char-foldcase char-lower-case? char-numeric?
+    char-upcase char-upper-case? char-whitespace? digit-value
+    string-ci<=? string-ci<? string-ci=? string-ci>=? string-ci>?
+    string-downcase string-foldcase string-upcase
+  #+end_example
+
+* (scheme complex)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-complex
+  :END:
+
+  #+begin_example
+    angle imag-part magnitude make-polar make-rectangular real-part
+  #+end_example
+
+* (scheme cxr)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-cxr
+  :END:
+
+  #+begin_example
+    caaaar caaadr caaar caadar caaddr caadr cadaar cadadr cadar caddar
+    cadddr caddr cdaaar cdaadr cdaar cdadar cdaddr cdadr cddaar cddadr
+    cddar cdddar cddddr cdddr
+  #+end_example
+
+* (scheme eval)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-eval
+  :END:
+
+  #+begin_example
+    environment eval
+  #+end_example
+
+* (scheme file)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-file
+  :END:
+
+  #+begin_example
+    call-with-input-file call-with-output-file delete-file file-exists?
+    open-binary-input-file open-binary-output-file open-input-file
+    open-output-file with-input-from-file with-output-to-file
+  #+end_example
+
+* (scheme inexact)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-inexact
+  :END:
+
+  #+begin_example
+    acos asin atan cos exp finite? infinite? log nan? sin sqrt tan
+  #+end_example
+
+* (scheme lazy)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-lazy
+  :END:
+
+  #+begin_example
+    delay delay-force force make-promise promise?
+  #+end_example
+
+* (scheme load)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-load
+  :END:
+
+  #+begin_example
+    load
+  #+end_example
+
+* (scheme process-context)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-process-context
+  :END:
+
+  #+begin_example
+    command-line emergency-exit exit get-environment-variable
+    get-environment-variables
+  #+end_example
+
+* (scheme read)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-read
+  :END:
+
+  #+begin_example
+    read
+  #+end_example
+
+* (scheme repl)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-repl
+  :END:
+
+  #+begin_example
+    interaction-environment
+  #+end_example
+
+* (scheme time)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-time
+  :END:
+
+  #+begin_example
+    current-jiffy current-second jiffies-per-second
+  #+end_example
+
+* (scheme write)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-write
+  :END:
+
+  #+begin_example
+    display write write-shared write-simple
+  #+end_example
+
+* (scheme r5rs)
+  :PROPERTIES:
+  :CUSTOM_ID: scheme-r5rs
+  :END:
+
+  #+begin_example
+    * + - ... / < <= = => > >= _ abs acos and angle append apply asin
+    assoc assq assv atan begin boolean? caaaar caaadr caaar caadar
+    caaddr caadr caar cadaar cadadr cadar caddar cadddr caddr cadr
+    call-with-current-continuation call-with-input-file
+    call-with-output-file call-with-values car case cdaaar cdaadr cdaar
+    cdadar cdaddr cdadr cdar cddaar cddadr cddar cdddar cddddr cdddr
+    cddr cdr ceiling char->integer char-alphabetic? char-ci<=? char-ci<?
+    char-ci=? char-ci>=? char-ci>? char-downcase char-lower-case?
+    char-numeric? char-ready? char-upcase char-upper-case?
+    char-whitespace? char<=? char<? char=? char>=? char>? char?
+    close-input-port close-output-port complex? cond cons cos
+    current-input-port current-output-port define define-syntax delay
+    denominator display do dynamic-wind else eof-object? eq? equal? eqv?
+    eval even? exact->inexact exact? exp expt floor for-each force gcd
+    if imag-part inexact->exact inexact? input-port? integer->char
+    integer? interaction-environment lambda lcm length let let*
+    let-syntax letrec letrec-syntax list list->string list->vector
+    list-ref list-tail list? load log magnitude make-polar
+    make-rectangular make-string make-vector map max member memq memv
+    min modulo negative? newline not null-environment null?
+    number->string number? numerator odd? open-input-file
+    open-output-file or output-port? pair? peek-char positive?
+    procedure? quasiquote quote quotient rational? rationalize read
+    read-char real-part real? remainder reverse round
+    scheme-report-environment set! set-car! set-cdr! sin sqrt string
+    string->list string->number string->symbol string-append
+    string-ci<=? string-ci<? string-ci=? string-ci>=? string-ci>?
+    string-copy string-fill! string-length string-ref string-set!
+    string<=? string<? string=? string>=? string>? string? substring
+    symbol->string symbol? syntax-rules tan truncate unquote
+    unquote-splicing values
+    vector vector->list vector-fill! vector-length vector-ref
+    vector-set! vector? with-input-from-file with-output-to-file write
+    write-char zero?
+  #+end_example
+
+  This is the list in Appendix A, plus =syntax-rules= and the
+  auxiliary syntax =else=, ~=>~, =...= and =_= that the errata to the
+  report add, plus =unquote= and =unquote-splicing=.
+
+* (iota extras)
+  :PROPERTIES:
+  :CUSTOM_ID: iota-extras
+  :END:
+
+  #+begin_example
+    1+ 1- add1 any append-map call-with-output-string compose curry
+    displayln every fact fib filter first flip fold foldl foldr id
+    iota-range last-pair list-index named-lambda partition port->string
+    print reduce remove second string-join string-null? sub1 third
+    unfold writeln
+  #+end_example
+
+  Conveniences that R7RS-small does not have. The repl, scripts and
+  =iota eval= import this library at startup. Anywhere else it has to
+  be imported by name:
+
+  #+begin_src scheme
+    (import (scheme base) (iota extras))
+  #+end_src
+
+  The procedures are defined in Scheme, in =lib/iota/stdlib.iota=.
+  =named-lambda= is syntax.
+
+  Some of these names are also used by SRFI 1 and SRFI 13. iota does
+  not implement those SRFIs, and where a name coincides the procedure
+  here is simpler and sometimes behaves differently:
+
+  - =fold= calls =(f acc x)=. SRFI 1 calls =(f x acc)=.
+  - =reduce= is =foldr=, so it works from the right and the initial
+    value always takes part. SRFI 1 works from the left and uses the
+    initial value only when the list is empty. =(reduce - 0 '(1 2 3 4))=
+    is -2 here and 2 in SRFI 1.
+  - =unfold= is =(unfold f seed stop?)= and keeps the value that
+    stopped it. SRFI 1 has =(unfold stop? mapper successor seed)= and
+    drops that value.
+  - =any= and =every= return =#t= or =#f=. SRFI 1 returns what the
+    predicate returned.
+  - =fold=, =any=, =every=, =append-map= and =list-index= take exactly
+    one list. SRFI 1 accepts several.
+  - =string-join= requires the separator. In SRFI 13 it is optional.
+  - =iota-range= takes a count and nothing else. SRFI 1 calls the
+    procedure =iota= and accepts a start and a step as well.
+
+  #+begin_src scheme
+    (fold cons '() '(1 2 3))                    ; => (((() . 1) . 2) . 3)
+    (foldr cons '() '(1 2 3))                   ; => (1 2 3)
+    (reduce max 0 '(-5 -3))                     ; => 0
+    (any (lambda (x) (and (odd? x) x)) '(2 3))  ; => #t
+    (iota-range 5)                              ; => (0 1 2 3 4)
+  #+end_src
+
+  With SRFI 1 the first of these would be =(3 2 1)=, the third =-3=
+  and the fourth =3=.
+
+** Combinators
+   :PROPERTIES:
+   :CUSTOM_ID: combinators
+   :END:
+
+   - =(id x)= :: Returns =x=.
+   - =(flip f)= :: Returns a procedure of two arguments that calls =f=
+     with them swapped. =((flip f) a b)= is =(f b a)=.
+   - =(curry f a)= :: Returns a procedure of one argument =b= that
+     calls =(f a b)=. It fixes the first argument of a two-argument
+     procedure and does nothing more general than that.
+   - =(compose f g)= :: Returns a procedure of one argument =x= that
+     calls =(f (g x))=. It takes exactly two procedures.
+
+   #+begin_src scheme
+     ((flip -) 1 10)                ; => 9
+     ((curry list 1) 2)             ; => (1 2)
+     ((compose car cdr) '(1 2 3))   ; => 2
+   #+end_src
+
+** Folds
+   :PROPERTIES:
+   :CUSTOM_ID: folds
+   :END:
+
+   Each of these takes a single list.
+
+   - =(foldl f acc list)= :: Folds from the left. Calls =(f acc x)=
+     for each element =x= in order, where =acc= is the result so far,
+     and returns the last result. For an empty list it returns =acc=.
+   - =(fold f acc list)= :: The same procedure as =foldl=.
+   - =(foldr f acc list)= :: Folds from the right. Calls =(f x acc)=
+     for each element =x=, starting with the last one. It loops over
+     a reversed copy of the list, so a long list does not lead to deep
+     recursion.
+   - =(reduce f acc list)= :: The same procedure as =foldr=.
+   - =(unfold f seed stop?)= :: Returns the list of =seed=,
+     =(f seed)=, =(f (f seed))= and so on, up to and including the
+     first value for which =stop?= returns true.
+
+   #+begin_src scheme
+     (foldl list 0 '(1 2 3))        ; => (((0 1) 2) 3)
+     (foldr list 0 '(1 2 3))        ; => (1 (2 (3 0)))
+     (unfold (lambda (x) (* x 2)) 1 (lambda (x) (> x 20)))   ; => (1 2 4 8 16 32)
+   #+end_src
+
+** Lists
+   :PROPERTIES:
+   :CUSTOM_ID: lists
+   :END:
+
+   - =(filter keep? list)= :: A new list of the elements for which
+     =keep?= returns true, in their original order.
+   - =(remove drop? list)= :: A new list of the elements for which
+     =drop?= returns false.
+   - =(partition pred list)= :: Two values, =(filter pred list)= and
+     =(remove pred list)=.
+   - =(any pred list)= :: =#t= if =pred= returns true for some
+     element, otherwise =#f=. It stops at the first such element.
+   - =(every pred list)= :: =#t= if =pred= returns true for every
+     element, otherwise =#f=. It stops at the first element that
+     fails. The result for an empty list is =#t=.
+   - =(list-index pred list)= :: The position, counting from zero, of
+     the first element for which =pred= returns true, or =#f= if there
+     is none.
+   - =(append-map f list)= :: Calls =f= on each element and appends
+     the lists it returns. The same as =(apply append (map f list))=.
+   - =(iota-range n)= :: The list of the integers from 0 up to but not
+     including =n=. It is empty when =n= is zero or negative. Other
+     Schemes call this =iota=. There is no procedure named =iota=
+     here.
+   - =(last-pair list)= :: The last pair of a non-empty list. The
+     empty list raises an error.
+   - =(first list)= :: The same procedure as =car=.
+   - =(second list)= :: The same procedure as =cadr=.
+   - =(third list)= :: The same procedure as =caddr=.
+
+   #+begin_src scheme
+     (partition odd? '(1 2 3 4 5))            ; => (1 3 5) (2 4)
+     (list-index even? '(1 3 4 5))            ; => 2
+     (append-map (lambda (x) (list x x)) '(1 2 3))   ; => (1 1 2 2 3 3)
+     (last-pair '(1 2 3))                     ; => (3)
+   #+end_src
+
+** Numbers
+   :PROPERTIES:
+   :CUSTOM_ID: numbers
+   :END:
+
+   - =(add1 n)= :: Returns =(+ n 1)=.
+   - =(1+ n)= :: Also returns =(+ n 1)=.
+   - =(sub1 n)= :: Returns =(- n 1)=.
+   - =(1- n)= :: Also returns =(- n 1)=.
+   - =(fact n)= :: The factorial of =n=, as an exact integer of
+     whatever size it takes. The result is 1 when =n= is 1 or less.
+   - =(fib n)= :: The Fibonacci number with index =n=, where
+     =(fib 0)= is 0 and =(fib 1)= is 1. =n= has to be a non-negative
+     integer. Given a negative number or a non-integer, the loop
+     never ends.
+
+   #+begin_src scheme
+     (fact 20)   ; => 2432902008176640000
+     (fib 90)    ; => 2880067194370816120
+   #+end_src
+
+** Strings and ports
+   :PROPERTIES:
+   :CUSTOM_ID: strings-and-ports
+   :END:
+
+   - =(string-null? string)= :: =#t= if =string= has length zero,
+     otherwise =#f=.
+   - =(string-join strings separator)= :: Concatenates the strings in
+     the list =strings=, with =separator= between each two. The
+     separator is required. An empty list gives the empty string.
+   - =(call-with-output-string proc)= :: Calls =proc= with a new
+     string output port and returns, as a string, everything that was
+     written to that port. The value =proc= returns is discarded.
+   - =(port->string port)= :: Reads characters from the textual input
+     port =port= until the end of file and returns them as a string.
+     The port stays open.
+
+   #+begin_src scheme
+     (string-join '("a" "b" "c") ", ")                 ; => "a, b, c"
+     (call-with-output-string
+       (lambda (port) (display "n = " port) (write 42 port)))   ; => "n = 42"
+     (port->string (open-input-string "to the end"))   ; => "to the end"
+   #+end_src
+
+** Output
+   :PROPERTIES:
+   :CUSTOM_ID: output
+   :END:
+
+   These write to the current output port. None of them takes a port
+   argument.
+
+   - =(displayln x)= :: Does =(display x)= and then writes a newline.
+   - =(writeln x)= :: Does =(write x)= and then writes a newline.
+   - =(print x ...)= :: Does =display= on each argument in order,
+     with nothing between them, and then writes a newline.
+
+** Syntax
+   :PROPERTIES:
+   :CUSTOM_ID: syntax
+   :END:
+
+   - =(named-lambda (name formal ...) body ...)= :: Like
+     =(lambda (formal ...) body ...)=, except that the procedure
+     carries =name=. It prints as =#<procedure name>= and an arity
+     error mentions =name=. A rest parameter is written as in
+     =lambda=, for example =(named-lambda (name . args) body ...)=.
+     =name= is not bound inside the body, so the procedure cannot
+     call itself through it. =(define (name formal ...) body ...)=
+     expands into this form.
+
+   #+begin_src scheme
+     ((named-lambda (double x) (* x 2)) 4)   ; => 8
+     (named-lambda (double x) (* x 2))       ; => #<procedure double>
+   #+end_src
+
+** Extensions that are not in a library
+   :PROPERTIES:
+   :CUSTOM_ID: extensions-that-are-not-in-a-library
+   :END:
+
+   A few extensions are part of the reader or of the core syntax, so
+   no library exports them: square brackets as parentheses, the
+   curried form of =define=, =(define x)= without a value, =eval=
+   with one argument and =force= on a value that is not a promise.
+   They are listed under [[file:r7rs-coverage.org::#deviations-and-extensions][Deviations and extensions]]
+   on the coverage page.
+
+* Index of names
+  :PROPERTIES:
+  :CUSTOM_ID: index
+  :END:
+
+  Every name the libraries above export. The names are in the order
+  of their character codes, so the ones made of signs and digits come
+  first.
+
+  - Kind :: =procedure=, =syntax= or =auxiliary syntax=. Auxiliary
+    syntax is a name such as =else= that means something only inside
+    another form.
+  - Libraries :: the libraries that export the name, without the word
+    =scheme=: =base= is =(scheme base)= and =r5rs= is =(scheme r5rs)=.
+    =extras= is =(iota extras)=.
+  - Described in :: the section of the [[https://small.r7rs.org/attachment/r7rs.pdf][report]] that defines the name.
+    For a name of =(iota extras)= it is the part of this page with
+    its entry.
+
+  A row can be linked to by its name, as in =procedures.html#vector-map=.
+
+  | Name                                                                                  | Kind             | Libraries       | Described in                              |
+  |---------------------------------------------------------------------------------------+------------------+-----------------+-------------------------------------------|
+  | @@html:<a id="*"></a>@@ =*=                                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="+"></a>@@ =+=                                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="-"></a>@@ =-=                                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="..."></a>@@ =...=                                                       | auxiliary syntax | base, r5rs      | 4.3.2                                     |
+  | @@html:<a id="/"></a>@@ =/=                                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="1+"></a>@@ =1+=                                                         | procedure        | extras          | [[#numbers][Numbers]]                     |
+  | @@html:<a id="1-"></a>@@ =1-=                                                         | procedure        | extras          | [[#numbers][Numbers]]                     |
+  | @@html:<a id="&lt;"></a>@@ =<=                                                        | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="&lt;="></a>@@ ~<=~                                                      | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="="></a>@@ ~=~                                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="=&gt;"></a>@@ ~=>~                                                      | auxiliary syntax | base, r5rs      | 4.2.1                                     |
+  | @@html:<a id="&gt;"></a>@@ =>=                                                        | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="&gt;="></a>@@ ~>=~                                                      | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="_"></a>@@ =_=                                                           | auxiliary syntax | base, r5rs      | 4.3.2                                     |
+  | @@html:<a id="abs"></a>@@ =abs=                                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="acos"></a>@@ =acos=                                                     | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="add1"></a>@@ =add1=                                                     | procedure        | extras          | [[#numbers][Numbers]]                     |
+  | @@html:<a id="and"></a>@@ =and=                                                       | syntax           | base, r5rs      | 4.2.1                                     |
+  | @@html:<a id="angle"></a>@@ =angle=                                                   | procedure        | complex, r5rs   | 6.2.6                                     |
+  | @@html:<a id="any"></a>@@ =any=                                                       | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="append"></a>@@ =append=                                                 | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="append-map"></a>@@ =append-map=                                         | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="apply"></a>@@ =apply=                                                   | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="asin"></a>@@ =asin=                                                     | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="assoc"></a>@@ =assoc=                                                   | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="assq"></a>@@ =assq=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="assv"></a>@@ =assv=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="atan"></a>@@ =atan=                                                     | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="begin"></a>@@ =begin=                                                   | syntax           | base, r5rs      | 4.2.3                                     |
+  | @@html:<a id="binary-port?"></a>@@ =binary-port?=                                     | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="boolean=?"></a>@@ ~boolean=?~                                           | procedure        | base            | 6.3                                       |
+  | @@html:<a id="boolean?"></a>@@ =boolean?=                                             | procedure        | base, r5rs      | 6.3                                       |
+  | @@html:<a id="bytevector"></a>@@ =bytevector=                                         | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector-append"></a>@@ =bytevector-append=                           | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector-copy"></a>@@ =bytevector-copy=                               | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector-copy!"></a>@@ =bytevector-copy!=                             | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector-length"></a>@@ =bytevector-length=                           | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector-u8-ref"></a>@@ =bytevector-u8-ref=                           | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector-u8-set!"></a>@@ =bytevector-u8-set!=                         | procedure        | base            | 6.9                                       |
+  | @@html:<a id="bytevector?"></a>@@ =bytevector?=                                       | procedure        | base            | 6.9                                       |
+  | @@html:<a id="caaaar"></a>@@ =caaaar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caaadr"></a>@@ =caaadr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caaar"></a>@@ =caaar=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caadar"></a>@@ =caadar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caaddr"></a>@@ =caaddr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caadr"></a>@@ =caadr=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caar"></a>@@ =caar=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="cadaar"></a>@@ =cadaar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cadadr"></a>@@ =cadadr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cadar"></a>@@ =cadar=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caddar"></a>@@ =caddar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cadddr"></a>@@ =cadddr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="caddr"></a>@@ =caddr=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cadr"></a>@@ =cadr=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="call-with-current-continuation"></a>@@ =call-with-current-continuation= | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="call-with-input-file"></a>@@ =call-with-input-file=                     | procedure        | file, r5rs      | 6.13.1                                    |
+  | @@html:<a id="call-with-output-file"></a>@@ =call-with-output-file=                   | procedure        | file, r5rs      | 6.13.1                                    |
+  | @@html:<a id="call-with-output-string"></a>@@ =call-with-output-string=               | procedure        | extras          | [[#strings-and-ports][Strings and ports]] |
+  | @@html:<a id="call-with-port"></a>@@ =call-with-port=                                 | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="call-with-values"></a>@@ =call-with-values=                             | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="call/cc"></a>@@ =call/cc=                                               | procedure        | base            | 6.10                                      |
+  | @@html:<a id="car"></a>@@ =car=                                                       | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="case"></a>@@ =case=                                                     | syntax           | base, r5rs      | 4.2.1                                     |
+  | @@html:<a id="case-lambda"></a>@@ =case-lambda=                                       | syntax           | case-lambda     | 4.2.9                                     |
+  | @@html:<a id="cdaaar"></a>@@ =cdaaar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdaadr"></a>@@ =cdaadr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdaar"></a>@@ =cdaar=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdadar"></a>@@ =cdadar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdaddr"></a>@@ =cdaddr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdadr"></a>@@ =cdadr=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdar"></a>@@ =cdar=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="cddaar"></a>@@ =cddaar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cddadr"></a>@@ =cddadr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cddar"></a>@@ =cddar=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdddar"></a>@@ =cdddar=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cddddr"></a>@@ =cddddr=                                                 | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cdddr"></a>@@ =cdddr=                                                   | procedure        | cxr, r5rs       | 6.4                                       |
+  | @@html:<a id="cddr"></a>@@ =cddr=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="cdr"></a>@@ =cdr=                                                       | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="ceiling"></a>@@ =ceiling=                                               | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="char-&gt;integer"></a>@@ =char->integer=                                | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="char-alphabetic?"></a>@@ =char-alphabetic?=                             | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-ci&lt;=?"></a>@@ ~char-ci<=?~                                      | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-ci&lt;?"></a>@@ =char-ci<?=                                        | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-ci=?"></a>@@ ~char-ci=?~                                           | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-ci&gt;=?"></a>@@ ~char-ci>=?~                                      | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-ci&gt;?"></a>@@ =char-ci>?=                                        | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-downcase"></a>@@ =char-downcase=                                   | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-foldcase"></a>@@ =char-foldcase=                                   | procedure        | char            | 6.6                                       |
+  | @@html:<a id="char-lower-case?"></a>@@ =char-lower-case?=                             | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-numeric?"></a>@@ =char-numeric?=                                   | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-ready?"></a>@@ =char-ready?=                                       | procedure        | base, r5rs      | 6.13.2                                    |
+  | @@html:<a id="char-upcase"></a>@@ =char-upcase=                                       | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-upper-case?"></a>@@ =char-upper-case?=                             | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char-whitespace?"></a>@@ =char-whitespace?=                             | procedure        | char, r5rs      | 6.6                                       |
+  | @@html:<a id="char&lt;=?"></a>@@ ~char<=?~                                            | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="char&lt;?"></a>@@ =char<?=                                              | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="char=?"></a>@@ ~char=?~                                                 | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="char&gt;=?"></a>@@ ~char>=?~                                            | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="char&gt;?"></a>@@ =char>?=                                              | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="char?"></a>@@ =char?=                                                   | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="close-input-port"></a>@@ =close-input-port=                             | procedure        | base, r5rs      | 6.13.1                                    |
+  | @@html:<a id="close-output-port"></a>@@ =close-output-port=                           | procedure        | base, r5rs      | 6.13.1                                    |
+  | @@html:<a id="close-port"></a>@@ =close-port=                                         | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="command-line"></a>@@ =command-line=                                     | procedure        | process-context | 6.14                                      |
+  | @@html:<a id="complex?"></a>@@ =complex?=                                             | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="compose"></a>@@ =compose=                                               | procedure        | extras          | [[#combinators][Combinators]]             |
+  | @@html:<a id="cond"></a>@@ =cond=                                                     | syntax           | base, r5rs      | 4.2.1                                     |
+  | @@html:<a id="cond-expand"></a>@@ =cond-expand=                                       | syntax           | base            | 4.2.1                                     |
+  | @@html:<a id="cons"></a>@@ =cons=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="cos"></a>@@ =cos=                                                       | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="current-error-port"></a>@@ =current-error-port=                         | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="current-input-port"></a>@@ =current-input-port=                         | procedure        | base, r5rs      | 6.13.1                                    |
+  | @@html:<a id="current-jiffy"></a>@@ =current-jiffy=                                   | procedure        | time            | 6.14                                      |
+  | @@html:<a id="current-output-port"></a>@@ =current-output-port=                       | procedure        | base, r5rs      | 6.13.1                                    |
+  | @@html:<a id="current-second"></a>@@ =current-second=                                 | procedure        | time            | 6.14                                      |
+  | @@html:<a id="curry"></a>@@ =curry=                                                   | procedure        | extras          | [[#combinators][Combinators]]             |
+  | @@html:<a id="define"></a>@@ =define=                                                 | syntax           | base, r5rs      | 5.3                                       |
+  | @@html:<a id="define-record-type"></a>@@ =define-record-type=                         | syntax           | base            | 5.5                                       |
+  | @@html:<a id="define-syntax"></a>@@ =define-syntax=                                   | syntax           | base, r5rs      | 5.4                                       |
+  | @@html:<a id="define-values"></a>@@ =define-values=                                   | syntax           | base            | 5.3.3                                     |
+  | @@html:<a id="delay"></a>@@ =delay=                                                   | syntax           | lazy, r5rs      | 4.2.5                                     |
+  | @@html:<a id="delay-force"></a>@@ =delay-force=                                       | syntax           | lazy            | 4.2.5                                     |
+  | @@html:<a id="delete-file"></a>@@ =delete-file=                                       | procedure        | file            | 6.14                                      |
+  | @@html:<a id="denominator"></a>@@ =denominator=                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="digit-value"></a>@@ =digit-value=                                       | procedure        | char            | 6.6                                       |
+  | @@html:<a id="display"></a>@@ =display=                                               | procedure        | write, r5rs     | 6.13.3                                    |
+  | @@html:<a id="displayln"></a>@@ =displayln=                                           | procedure        | extras          | [[#output][Output]]                       |
+  | @@html:<a id="do"></a>@@ =do=                                                         | syntax           | base, r5rs      | 4.2.4                                     |
+  | @@html:<a id="dynamic-wind"></a>@@ =dynamic-wind=                                     | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="else"></a>@@ =else=                                                     | auxiliary syntax | base, r5rs      | 4.2.1                                     |
+  | @@html:<a id="emergency-exit"></a>@@ =emergency-exit=                                 | procedure        | process-context | 6.14                                      |
+  | @@html:<a id="environment"></a>@@ =environment=                                       | procedure        | eval            | 6.12                                      |
+  | @@html:<a id="eof-object"></a>@@ =eof-object=                                         | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="eof-object?"></a>@@ =eof-object?=                                       | procedure        | base, r5rs      | 6.13.2                                    |
+  | @@html:<a id="eq?"></a>@@ =eq?=                                                       | procedure        | base, r5rs      | 6.1                                       |
+  | @@html:<a id="equal?"></a>@@ =equal?=                                                 | procedure        | base, r5rs      | 6.1                                       |
+  | @@html:<a id="eqv?"></a>@@ =eqv?=                                                     | procedure        | base, r5rs      | 6.1                                       |
+  | @@html:<a id="error"></a>@@ =error=                                                   | procedure        | base            | 6.11                                      |
+  | @@html:<a id="error-object-irritants"></a>@@ =error-object-irritants=                 | procedure        | base            | 6.11                                      |
+  | @@html:<a id="error-object-message"></a>@@ =error-object-message=                     | procedure        | base            | 6.11                                      |
+  | @@html:<a id="error-object?"></a>@@ =error-object?=                                   | procedure        | base            | 6.11                                      |
+  | @@html:<a id="eval"></a>@@ =eval=                                                     | procedure        | eval, r5rs      | 6.12                                      |
+  | @@html:<a id="even?"></a>@@ =even?=                                                   | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="every"></a>@@ =every=                                                   | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="exact"></a>@@ =exact=                                                   | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="exact-&gt;inexact"></a>@@ =exact->inexact=                              | procedure        | r5rs            | 6.2.6                                     |
+  | @@html:<a id="exact-integer-sqrt"></a>@@ =exact-integer-sqrt=                         | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="exact-integer?"></a>@@ =exact-integer?=                                 | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="exact?"></a>@@ =exact?=                                                 | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="exit"></a>@@ =exit=                                                     | procedure        | process-context | 6.14                                      |
+  | @@html:<a id="exp"></a>@@ =exp=                                                       | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="expt"></a>@@ =expt=                                                     | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="fact"></a>@@ =fact=                                                     | procedure        | extras          | [[#numbers][Numbers]]                     |
+  | @@html:<a id="features"></a>@@ =features=                                             | procedure        | base            | 6.14                                      |
+  | @@html:<a id="fib"></a>@@ =fib=                                                       | procedure        | extras          | [[#numbers][Numbers]]                     |
+  | @@html:<a id="file-error?"></a>@@ =file-error?=                                       | procedure        | base            | 6.11                                      |
+  | @@html:<a id="file-exists?"></a>@@ =file-exists?=                                     | procedure        | file            | 6.14                                      |
+  | @@html:<a id="filter"></a>@@ =filter=                                                 | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="finite?"></a>@@ =finite?=                                               | procedure        | inexact         | 6.2.6                                     |
+  | @@html:<a id="first"></a>@@ =first=                                                   | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="flip"></a>@@ =flip=                                                     | procedure        | extras          | [[#combinators][Combinators]]             |
+  | @@html:<a id="floor"></a>@@ =floor=                                                   | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="floor-quotient"></a>@@ =floor-quotient=                                 | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="floor-remainder"></a>@@ =floor-remainder=                               | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="floor/"></a>@@ =floor/=                                                 | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="flush-output-port"></a>@@ =flush-output-port=                           | procedure        | base            | 6.13.3                                    |
+  | @@html:<a id="fold"></a>@@ =fold=                                                     | procedure        | extras          | [[#folds][Folds]]                         |
+  | @@html:<a id="foldl"></a>@@ =foldl=                                                   | procedure        | extras          | [[#folds][Folds]]                         |
+  | @@html:<a id="foldr"></a>@@ =foldr=                                                   | procedure        | extras          | [[#folds][Folds]]                         |
+  | @@html:<a id="for-each"></a>@@ =for-each=                                             | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="force"></a>@@ =force=                                                   | procedure        | lazy, r5rs      | 4.2.5                                     |
+  | @@html:<a id="gcd"></a>@@ =gcd=                                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="get-environment-variable"></a>@@ =get-environment-variable=             | procedure        | process-context | 6.14                                      |
+  | @@html:<a id="get-environment-variables"></a>@@ =get-environment-variables=           | procedure        | process-context | 6.14                                      |
+  | @@html:<a id="get-output-bytevector"></a>@@ =get-output-bytevector=                   | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="get-output-string"></a>@@ =get-output-string=                           | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="guard"></a>@@ =guard=                                                   | syntax           | base            | 4.2.7                                     |
+  | @@html:<a id="id"></a>@@ =id=                                                         | procedure        | extras          | [[#combinators][Combinators]]             |
+  | @@html:<a id="if"></a>@@ =if=                                                         | syntax           | base, r5rs      | 4.1.5                                     |
+  | @@html:<a id="imag-part"></a>@@ =imag-part=                                           | procedure        | complex, r5rs   | 6.2.6                                     |
+  | @@html:<a id="include"></a>@@ =include=                                               | syntax           | base            | 4.1.7                                     |
+  | @@html:<a id="include-ci"></a>@@ =include-ci=                                         | syntax           | base            | 4.1.7                                     |
+  | @@html:<a id="inexact"></a>@@ =inexact=                                               | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="inexact-&gt;exact"></a>@@ =inexact->exact=                              | procedure        | r5rs            | 6.2.6                                     |
+  | @@html:<a id="inexact?"></a>@@ =inexact?=                                             | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="infinite?"></a>@@ =infinite?=                                           | procedure        | inexact         | 6.2.6                                     |
+  | @@html:<a id="input-port-open?"></a>@@ =input-port-open?=                             | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="input-port?"></a>@@ =input-port?=                                       | procedure        | base, r5rs      | 6.13.1                                    |
+  | @@html:<a id="integer-&gt;char"></a>@@ =integer->char=                                | procedure        | base, r5rs      | 6.6                                       |
+  | @@html:<a id="integer?"></a>@@ =integer?=                                             | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="interaction-environment"></a>@@ =interaction-environment=               | procedure        | repl, r5rs      | 6.12                                      |
+  | @@html:<a id="iota-range"></a>@@ =iota-range=                                         | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="jiffies-per-second"></a>@@ =jiffies-per-second=                         | procedure        | time            | 6.14                                      |
+  | @@html:<a id="lambda"></a>@@ =lambda=                                                 | syntax           | base, r5rs      | 4.1.4                                     |
+  | @@html:<a id="last-pair"></a>@@ =last-pair=                                           | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="lcm"></a>@@ =lcm=                                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="length"></a>@@ =length=                                                 | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="let"></a>@@ =let=                                                       | syntax           | base, r5rs      | 4.2.2, 4.2.4                              |
+  | @@html:<a id="let*"></a>@@ =let*=                                                     | syntax           | base, r5rs      | 4.2.2                                     |
+  | @@html:<a id="let*-values"></a>@@ =let*-values=                                       | syntax           | base            | 4.2.2                                     |
+  | @@html:<a id="let-syntax"></a>@@ =let-syntax=                                         | syntax           | base, r5rs      | 4.3.1                                     |
+  | @@html:<a id="let-values"></a>@@ =let-values=                                         | syntax           | base            | 4.2.2                                     |
+  | @@html:<a id="letrec"></a>@@ =letrec=                                                 | syntax           | base, r5rs      | 4.2.2                                     |
+  | @@html:<a id="letrec*"></a>@@ =letrec*=                                               | syntax           | base            | 4.2.2                                     |
+  | @@html:<a id="letrec-syntax"></a>@@ =letrec-syntax=                                   | syntax           | base, r5rs      | 4.3.1                                     |
+  | @@html:<a id="list"></a>@@ =list=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="list-&gt;string"></a>@@ =list->string=                                  | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="list-&gt;vector"></a>@@ =list->vector=                                  | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="list-copy"></a>@@ =list-copy=                                           | procedure        | base            | 6.4                                       |
+  | @@html:<a id="list-index"></a>@@ =list-index=                                         | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="list-ref"></a>@@ =list-ref=                                             | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="list-set!"></a>@@ =list-set!=                                           | procedure        | base            | 6.4                                       |
+  | @@html:<a id="list-tail"></a>@@ =list-tail=                                           | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="list?"></a>@@ =list?=                                                   | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="load"></a>@@ =load=                                                     | procedure        | load, r5rs      | 6.14                                      |
+  | @@html:<a id="log"></a>@@ =log=                                                       | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="magnitude"></a>@@ =magnitude=                                           | procedure        | complex, r5rs   | 6.2.6                                     |
+  | @@html:<a id="make-bytevector"></a>@@ =make-bytevector=                               | procedure        | base            | 6.9                                       |
+  | @@html:<a id="make-list"></a>@@ =make-list=                                           | procedure        | base            | 6.4                                       |
+  | @@html:<a id="make-parameter"></a>@@ =make-parameter=                                 | procedure        | base            | 4.2.6                                     |
+  | @@html:<a id="make-polar"></a>@@ =make-polar=                                         | procedure        | complex, r5rs   | 6.2.6                                     |
+  | @@html:<a id="make-promise"></a>@@ =make-promise=                                     | procedure        | lazy            | 4.2.5                                     |
+  | @@html:<a id="make-rectangular"></a>@@ =make-rectangular=                             | procedure        | complex, r5rs   | 6.2.6                                     |
+  | @@html:<a id="make-string"></a>@@ =make-string=                                       | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="make-vector"></a>@@ =make-vector=                                       | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="map"></a>@@ =map=                                                       | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="max"></a>@@ =max=                                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="member"></a>@@ =member=                                                 | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="memq"></a>@@ =memq=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="memv"></a>@@ =memv=                                                     | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="min"></a>@@ =min=                                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="modulo"></a>@@ =modulo=                                                 | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="named-lambda"></a>@@ =named-lambda=                                     | syntax           | extras          | [[#syntax][Syntax]]                       |
+  | @@html:<a id="nan?"></a>@@ =nan?=                                                     | procedure        | inexact         | 6.2.6                                     |
+  | @@html:<a id="negative?"></a>@@ =negative?=                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="newline"></a>@@ =newline=                                               | procedure        | base, r5rs      | 6.13.3                                    |
+  | @@html:<a id="not"></a>@@ =not=                                                       | procedure        | base, r5rs      | 6.3                                       |
+  | @@html:<a id="null-environment"></a>@@ =null-environment=                             | procedure        | r5rs            | 6.12                                      |
+  | @@html:<a id="null?"></a>@@ =null?=                                                   | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="number-&gt;string"></a>@@ =number->string=                              | procedure        | base, r5rs      | 6.2.7                                     |
+  | @@html:<a id="number?"></a>@@ =number?=                                               | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="numerator"></a>@@ =numerator=                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="odd?"></a>@@ =odd?=                                                     | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="open-binary-input-file"></a>@@ =open-binary-input-file=                 | procedure        | file            | 6.13.1                                    |
+  | @@html:<a id="open-binary-output-file"></a>@@ =open-binary-output-file=               | procedure        | file            | 6.13.1                                    |
+  | @@html:<a id="open-input-bytevector"></a>@@ =open-input-bytevector=                   | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="open-input-file"></a>@@ =open-input-file=                               | procedure        | file, r5rs      | 6.13.1                                    |
+  | @@html:<a id="open-input-string"></a>@@ =open-input-string=                           | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="open-output-bytevector"></a>@@ =open-output-bytevector=                 | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="open-output-file"></a>@@ =open-output-file=                             | procedure        | file, r5rs      | 6.13.1                                    |
+  | @@html:<a id="open-output-string"></a>@@ =open-output-string=                         | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="or"></a>@@ =or=                                                         | syntax           | base, r5rs      | 4.2.1                                     |
+  | @@html:<a id="output-port-open?"></a>@@ =output-port-open?=                           | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="output-port?"></a>@@ =output-port?=                                     | procedure        | base, r5rs      | 6.13.1                                    |
+  | @@html:<a id="pair?"></a>@@ =pair?=                                                   | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="parameterize"></a>@@ =parameterize=                                     | syntax           | base            | 4.2.6                                     |
+  | @@html:<a id="partition"></a>@@ =partition=                                           | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="peek-char"></a>@@ =peek-char=                                           | procedure        | base, r5rs      | 6.13.2                                    |
+  | @@html:<a id="peek-u8"></a>@@ =peek-u8=                                               | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="port-&gt;string"></a>@@ =port->string=                                  | procedure        | extras          | [[#strings-and-ports][Strings and ports]] |
+  | @@html:<a id="port?"></a>@@ =port?=                                                   | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="positive?"></a>@@ =positive?=                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="print"></a>@@ =print=                                                   | procedure        | extras          | [[#output][Output]]                       |
+  | @@html:<a id="procedure?"></a>@@ =procedure?=                                         | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="promise?"></a>@@ =promise?=                                             | procedure        | lazy            | 4.2.5                                     |
+  | @@html:<a id="quasiquote"></a>@@ =quasiquote=                                         | syntax           | base, r5rs      | 4.2.8                                     |
+  | @@html:<a id="quote"></a>@@ =quote=                                                   | syntax           | base, r5rs      | 4.1.2                                     |
+  | @@html:<a id="quotient"></a>@@ =quotient=                                             | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="raise"></a>@@ =raise=                                                   | procedure        | base            | 6.11                                      |
+  | @@html:<a id="raise-continuable"></a>@@ =raise-continuable=                           | procedure        | base            | 6.11                                      |
+  | @@html:<a id="rational?"></a>@@ =rational?=                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="rationalize"></a>@@ =rationalize=                                       | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="read"></a>@@ =read=                                                     | procedure        | read, r5rs      | 6.13.2                                    |
+  | @@html:<a id="read-bytevector"></a>@@ =read-bytevector=                               | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="read-bytevector!"></a>@@ =read-bytevector!=                             | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="read-char"></a>@@ =read-char=                                           | procedure        | base, r5rs      | 6.13.2                                    |
+  | @@html:<a id="read-error?"></a>@@ =read-error?=                                       | procedure        | base            | 6.11                                      |
+  | @@html:<a id="read-line"></a>@@ =read-line=                                           | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="read-string"></a>@@ =read-string=                                       | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="read-u8"></a>@@ =read-u8=                                               | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="real-part"></a>@@ =real-part=                                           | procedure        | complex, r5rs   | 6.2.6                                     |
+  | @@html:<a id="real?"></a>@@ =real?=                                                   | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="reduce"></a>@@ =reduce=                                                 | procedure        | extras          | [[#folds][Folds]]                         |
+  | @@html:<a id="remainder"></a>@@ =remainder=                                           | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="remove"></a>@@ =remove=                                                 | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="reverse"></a>@@ =reverse=                                               | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="round"></a>@@ =round=                                                   | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="scheme-report-environment"></a>@@ =scheme-report-environment=           | procedure        | r5rs            | 6.12                                      |
+  | @@html:<a id="second"></a>@@ =second=                                                 | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="set!"></a>@@ =set!=                                                     | syntax           | base, r5rs      | 4.1.6                                     |
+  | @@html:<a id="set-car!"></a>@@ =set-car!=                                             | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="set-cdr!"></a>@@ =set-cdr!=                                             | procedure        | base, r5rs      | 6.4                                       |
+  | @@html:<a id="sin"></a>@@ =sin=                                                       | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="sqrt"></a>@@ =sqrt=                                                     | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="square"></a>@@ =square=                                                 | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="string"></a>@@ =string=                                                 | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-&gt;list"></a>@@ =string->list=                                  | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-&gt;number"></a>@@ =string->number=                              | procedure        | base, r5rs      | 6.2.7                                     |
+  | @@html:<a id="string-&gt;symbol"></a>@@ =string->symbol=                              | procedure        | base, r5rs      | 6.5                                       |
+  | @@html:<a id="string-&gt;utf8"></a>@@ =string->utf8=                                  | procedure        | base            | 6.9                                       |
+  | @@html:<a id="string-&gt;vector"></a>@@ =string->vector=                              | procedure        | base            | 6.8                                       |
+  | @@html:<a id="string-append"></a>@@ =string-append=                                   | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-ci&lt;=?"></a>@@ ~string-ci<=?~                                  | procedure        | char, r5rs      | 6.7                                       |
+  | @@html:<a id="string-ci&lt;?"></a>@@ =string-ci<?=                                    | procedure        | char, r5rs      | 6.7                                       |
+  | @@html:<a id="string-ci=?"></a>@@ ~string-ci=?~                                       | procedure        | char, r5rs      | 6.7                                       |
+  | @@html:<a id="string-ci&gt;=?"></a>@@ ~string-ci>=?~                                  | procedure        | char, r5rs      | 6.7                                       |
+  | @@html:<a id="string-ci&gt;?"></a>@@ =string-ci>?=                                    | procedure        | char, r5rs      | 6.7                                       |
+  | @@html:<a id="string-copy"></a>@@ =string-copy=                                       | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-copy!"></a>@@ =string-copy!=                                     | procedure        | base            | 6.7                                       |
+  | @@html:<a id="string-downcase"></a>@@ =string-downcase=                               | procedure        | char            | 6.7                                       |
+  | @@html:<a id="string-fill!"></a>@@ =string-fill!=                                     | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-foldcase"></a>@@ =string-foldcase=                               | procedure        | char            | 6.7                                       |
+  | @@html:<a id="string-for-each"></a>@@ =string-for-each=                               | procedure        | base            | 6.10                                      |
+  | @@html:<a id="string-join"></a>@@ =string-join=                                       | procedure        | extras          | [[#strings-and-ports][Strings and ports]] |
+  | @@html:<a id="string-length"></a>@@ =string-length=                                   | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-map"></a>@@ =string-map=                                         | procedure        | base            | 6.10                                      |
+  | @@html:<a id="string-null?"></a>@@ =string-null?=                                     | procedure        | extras          | [[#strings-and-ports][Strings and ports]] |
+  | @@html:<a id="string-ref"></a>@@ =string-ref=                                         | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-set!"></a>@@ =string-set!=                                       | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string-upcase"></a>@@ =string-upcase=                                   | procedure        | char            | 6.7                                       |
+  | @@html:<a id="string&lt;=?"></a>@@ ~string<=?~                                        | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string&lt;?"></a>@@ =string<?=                                          | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string=?"></a>@@ ~string=?~                                             | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string&gt;=?"></a>@@ ~string>=?~                                        | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string&gt;?"></a>@@ =string>?=                                          | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="string?"></a>@@ =string?=                                               | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="sub1"></a>@@ =sub1=                                                     | procedure        | extras          | [[#numbers][Numbers]]                     |
+  | @@html:<a id="substring"></a>@@ =substring=                                           | procedure        | base, r5rs      | 6.7                                       |
+  | @@html:<a id="symbol-&gt;string"></a>@@ =symbol->string=                              | procedure        | base, r5rs      | 6.5                                       |
+  | @@html:<a id="symbol=?"></a>@@ ~symbol=?~                                             | procedure        | base            | 6.5                                       |
+  | @@html:<a id="symbol?"></a>@@ =symbol?=                                               | procedure        | base, r5rs      | 6.5                                       |
+  | @@html:<a id="syntax-error"></a>@@ =syntax-error=                                     | syntax           | base            | 4.3.3                                     |
+  | @@html:<a id="syntax-rules"></a>@@ =syntax-rules=                                     | syntax           | base, r5rs      | 4.3.2                                     |
+  | @@html:<a id="tan"></a>@@ =tan=                                                       | procedure        | inexact, r5rs   | 6.2.6                                     |
+  | @@html:<a id="textual-port?"></a>@@ =textual-port?=                                   | procedure        | base            | 6.13.1                                    |
+  | @@html:<a id="third"></a>@@ =third=                                                   | procedure        | extras          | [[#lists][Lists]]                         |
+  | @@html:<a id="truncate"></a>@@ =truncate=                                             | procedure        | base, r5rs      | 6.2.6                                     |
+  | @@html:<a id="truncate-quotient"></a>@@ =truncate-quotient=                           | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="truncate-remainder"></a>@@ =truncate-remainder=                         | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="truncate/"></a>@@ =truncate/=                                           | procedure        | base            | 6.2.6                                     |
+  | @@html:<a id="u8-ready?"></a>@@ =u8-ready?=                                           | procedure        | base            | 6.13.2                                    |
+  | @@html:<a id="unfold"></a>@@ =unfold=                                                 | procedure        | extras          | [[#folds][Folds]]                         |
+  | @@html:<a id="unless"></a>@@ =unless=                                                 | syntax           | base            | 4.2.1                                     |
+  | @@html:<a id="unquote"></a>@@ =unquote=                                               | auxiliary syntax | base, r5rs      | 4.2.8                                     |
+  | @@html:<a id="unquote-splicing"></a>@@ =unquote-splicing=                             | auxiliary syntax | base, r5rs      | 4.2.8                                     |
+  | @@html:<a id="utf8-&gt;string"></a>@@ =utf8->string=                                  | procedure        | base            | 6.9                                       |
+  | @@html:<a id="values"></a>@@ =values=                                                 | procedure        | base, r5rs      | 6.10                                      |
+  | @@html:<a id="vector"></a>@@ =vector=                                                 | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="vector-&gt;list"></a>@@ =vector->list=                                  | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="vector-&gt;string"></a>@@ =vector->string=                              | procedure        | base            | 6.8                                       |
+  | @@html:<a id="vector-append"></a>@@ =vector-append=                                   | procedure        | base            | 6.8                                       |
+  | @@html:<a id="vector-copy"></a>@@ =vector-copy=                                       | procedure        | base            | 6.8                                       |
+  | @@html:<a id="vector-copy!"></a>@@ =vector-copy!=                                     | procedure        | base            | 6.8                                       |
+  | @@html:<a id="vector-fill!"></a>@@ =vector-fill!=                                     | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="vector-for-each"></a>@@ =vector-for-each=                               | procedure        | base            | 6.10                                      |
+  | @@html:<a id="vector-length"></a>@@ =vector-length=                                   | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="vector-map"></a>@@ =vector-map=                                         | procedure        | base            | 6.10                                      |
+  | @@html:<a id="vector-ref"></a>@@ =vector-ref=                                         | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="vector-set!"></a>@@ =vector-set!=                                       | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="vector?"></a>@@ =vector?=                                               | procedure        | base, r5rs      | 6.8                                       |
+  | @@html:<a id="when"></a>@@ =when=                                                     | syntax           | base            | 4.2.1                                     |
+  | @@html:<a id="with-exception-handler"></a>@@ =with-exception-handler=                 | procedure        | base            | 6.11                                      |
+  | @@html:<a id="with-input-from-file"></a>@@ =with-input-from-file=                     | procedure        | file, r5rs      | 6.13.1                                    |
+  | @@html:<a id="with-output-to-file"></a>@@ =with-output-to-file=                       | procedure        | file, r5rs      | 6.13.1                                    |
+  | @@html:<a id="write"></a>@@ =write=                                                   | procedure        | write, r5rs     | 6.13.3                                    |
+  | @@html:<a id="write-bytevector"></a>@@ =write-bytevector=                             | procedure        | base            | 6.13.3                                    |
+  | @@html:<a id="write-char"></a>@@ =write-char=                                         | procedure        | base, r5rs      | 6.13.3                                    |
+  | @@html:<a id="write-shared"></a>@@ =write-shared=                                     | procedure        | write           | 6.13.3                                    |
+  | @@html:<a id="write-simple"></a>@@ =write-simple=                                     | procedure        | write           | 6.13.3                                    |
+  | @@html:<a id="write-string"></a>@@ =write-string=                                     | procedure        | base            | 6.13.3                                    |
+  | @@html:<a id="write-u8"></a>@@ =write-u8=                                             | procedure        | base            | 6.13.3                                    |
+  | @@html:<a id="writeln"></a>@@ =writeln=                                               | procedure        | extras          | [[#output][Output]]                       |
+  | @@html:<a id="zero?"></a>@@ =zero?=                                                   | procedure        | base, r5rs      | 6.2.6                                     |

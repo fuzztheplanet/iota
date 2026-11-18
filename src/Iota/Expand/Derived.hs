@@ -1,8 +1,8 @@
--- | The derived forms, cond, case, do, guard, quasiquote and the others,
--- as rewrites into simpler syntax. Mostly the definitions from chapter
--- 7.3 of the report. Every identifier a rewrite introduces is an implRef
--- alias, so the result resolves in the implementation environment no
--- matter what the use site has rebound.
+-- | The derived forms, @cond@, @case@, @do@, @guard@, @quasiquote@ and
+-- the others, as rewrites into simpler syntax. Mostly the definitions
+-- from chapter 7.3 of the report. Every identifier a rewrite introduces
+-- is an 'implRef' alias, so the result resolves in the implementation
+-- environment no matter what the use site has rebound.
 module Iota.Expand.Derived
   ( rewrite
   , condClauses

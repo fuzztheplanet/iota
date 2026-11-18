@@ -1,0 +1,696 @@
+#+TITLE: A tour of iota
+#+DESCRIPTION: A short hands-on tour of the iota Scheme interpreter: the repl, numbers, lists, strings, records, macros, errors, parameters, continuations, ports, libraries and scripts.
+#+SETUPFILE: setup.org
+
+This is a tour for someone who knows a little Scheme, or another Lisp,
+and has just installed iota. [[file:install.org][Installing iota]] covers getting that far.
+Each section shows one area with examples to type in, and ends with a
+pointer to the details. The repl sessions on this page, and the
+Scheme fragments that show a value, are run by the test suite, so what
+is shown is what iota prints. The exceptions are the session that
+writes a file and the shell sessions, which were run by hand.
+
+* First steps
+  :PROPERTIES:
+  :CUSTOM_ID: first-steps
+  :END:
+
+  Run =iota= with no arguments to get the repl. Type an expression and
+  it prints the value.
+
+  #+begin_example
+    $ iota
+    iota, an R7RS-small Scheme. Type :help for help.
+    iota> (+ 1 2)
+    3
+    iota> (define greeting "hello")
+    iota> (string-append greeting ", world")
+    "hello, world"
+    iota> (define (cube x) (* x x x))
+    iota> (cube 3)
+    27
+    iota> cube
+    #<procedure cube>
+  #+end_example
+
+  Values are printed the way =write= prints them, so a string shows
+  its quotes. A definition prints nothing.
+
+  An expression can run over several lines. While parentheses are
+  still open the prompt changes to =...=. An error prints a message
+  and the session carries on with everything defined so far.
+
+  #+begin_example
+    iota> (define (fact n)
+      ...   (if (= n 0)
+      ...       1
+      ...       (* n (fact (- n 1)))))
+    iota> (fact 30)
+    265252859812191058636308480000000
+    iota> (car '())
+    expected a pair, got: ()
+    iota> (fact 5)
+    120
+  #+end_example
+
+  Tab completes the name being typed. Lines that start with a colon
+  are commands to the repl itself, and =:help= lists them. =:q= or
+  Ctrl-D leaves.
+
+  #+begin_example
+    iota> :help
+    :help          show this help
+    :ast EXPR      print the parsed form of EXPR
+    :env [PREFIX]  list bound names (optionally filtered)
+    :load FILE     run FILE in the current environment
+    :q, :quit      leave the repl
+    iota> :q
+    Bye.
+  #+end_example
+
+  More in [[file:guide.org::#the-repl][the repl]] section of the guide.
+
+* Numbers
+  :PROPERTIES:
+  :CUSTOM_ID: numbers
+  :END:
+
+  Integers and rationals are exact and have no size limit. A number
+  written with a decimal point or an exponent is inexact, a double.
+  Square roots of negative numbers are complex.
+
+  #+begin_example
+    iota> (/ 6 4)
+    3/2
+    iota> (+ 1/3 1/6)
+    1/2
+    iota> (expt 2 200)
+    1606938044258990275541962092341162602522202993782792835301376
+    iota> (sqrt 16)
+    4
+    iota> (sqrt 2)
+    1.4142135623730951
+    iota> (sqrt -9)
+    +3i
+    iota> (* 2+3i 2-3i)
+    13
+  #+end_example
+
+  One inexact operand makes the result inexact. =exact= and =inexact=
+  convert between the two. ~=~ compares values, and =eqv?= also looks
+  at exactness.
+
+  #+begin_example
+    iota> (* 1.0 1/3)
+    0.3333333333333333
+    iota> (exact 0.25)
+    1/4
+    iota> (inexact 22/7)
+    3.142857142857143
+    iota> (= 1/2 0.5)
+    #t
+    iota> (eqv? 1/2 0.5)
+    #f
+  #+end_example
+
+  More in the [[file:guide.org::#numbers][numbers]] section of the guide, and a longer program in
+  [[file:examples.org::#numbers][examples/numbers.iota]].
+
+* Lists and higher-order procedures
+  :PROPERTIES:
+  :CUSTOM_ID: lists-and-higher-order-procedures
+  :END:
+
+  The list procedures of the report are all there.
+
+  #+begin_src scheme
+    (define xs (list 3 1 4 1 5 9))
+
+    (map (lambda (x) (* x x)) xs)          ; => (9 1 16 1 25 81)
+    (map + '(1 2 3) '(10 20 30))           ; => (11 22 33)
+    (apply max xs)                         ; => 9
+    (member 4 xs)                          ; => (4 1 5 9)
+    (assq 'b '((a 1) (b 2)))               ; => (b 2)
+    (append '(1 2) '(3) '(4 5))            ; => (1 2 3 4 5)
+    `(1 ,(+ 1 1) ,@(map square '(3 4)))    ; => (1 2 9 16)
+  #+end_src
+
+  The usual way to loop is a named =let=. A call in tail position does
+  not use up stack, so a loop like this one runs in constant space
+  however long the list is. Recursion that is not in tail position can
+  go deep as well.
+
+  #+begin_src scheme
+    (define (sum lst)
+      (let loop ((lst lst) (total 0))
+        (if (null? lst)
+            total
+            (loop (cdr lst) (+ total (car lst))))))
+
+    (sum '(3 1 4 1 5 9))                   ; => 23
+
+    (define (count n)
+      (if (= n 0)
+          0
+          (+ 1 (count (- n 1)))))
+
+    (count 100000)                         ; => 100000
+  #+end_src
+
+  The repl and scripts also start with the =(iota extras)= library
+  imported. It adds a few procedures the report does not have, such as
+  =filter=, =foldl=, =any= and =every=.
+
+  #+begin_src scheme
+    (filter odd? '(3 1 4 1 5 9))           ; => (3 1 1 5 9)
+    (foldl + 0 '(3 1 4 1 5 9))             ; => 23
+    (any odd? '(2 4 5))                    ; => #t
+    (every odd? '(2 4 5))                  ; => #f
+  #+end_src
+
+  They are not standard, and some of them differ from the procedures
+  of the same name in other Schemes. [[file:procedures.org::#iota-extras][Libraries and procedures]] lists
+  each one with its arguments.
+
+* Strings and characters
+  :PROPERTIES:
+  :CUSTOM_ID: strings-and-characters
+  :END:
+
+  Strings hold Unicode characters. =string-length= counts characters,
+  not bytes.
+
+  #+begin_example
+    iota> (string-append "foo" "bar")
+    "foobar"
+    iota> (string-length "héllo")
+    5
+    iota> (string-upcase "straße")
+    "STRASSE"
+    iota> (substring "hello world" 6 11)
+    "world"
+    iota> (string->list "abc")
+    (#\a #\b #\c)
+    iota> (char-upcase #\a)
+    #\A
+    iota> (string->symbol "hello")
+    hello
+    iota> (string->number "42")
+    42
+  #+end_example
+
+  Strings are mutable, but a string literal is a constant and so are a
+  quoted list and a vector literal. Changing one is an error. Build
+  the object with =make-string=, =string=, =list= or =vector=, or copy
+  the literal first with =string-copy=, =list-copy= or =vector-copy=.
+
+  #+begin_example
+    iota> (define s (make-string 3 #\-))
+    iota> (string-set! s 1 #\*)
+    iota> s
+    "-*-"
+    iota> (string-set! "abc" 0 #\z)
+    expected a mutable object in string-set!, not a literal constant, got: "abc"
+    iota> (define t (string-copy "abc"))
+    iota> (string-set! t 0 #\z)
+    iota> t
+    "zbc"
+    iota> (define v (vector-copy #(1 2 3)))
+    iota> (vector-set! v 0 9)
+    iota> v
+    #(9 2 3)
+  #+end_example
+
+  The data types are described in [[file:guide.org][Using iota]].
+
+* Records
+  :PROPERTIES:
+  :CUSTOM_ID: records
+  :END:
+
+  =define-record-type= makes a new type with a constructor, a
+  predicate, an accessor for each field and, where one is named, a
+  modifier.
+
+  #+begin_example
+    iota> (define-record-type point
+      ...   (make-point x y)
+      ...   point?
+      ...   (x point-x set-point-x!)
+      ...   (y point-y))
+    iota> (define p (make-point 3 4))
+    iota> p
+    #<point 3 4>
+    iota> (point-x p)
+    3
+    iota> (set-point-x! p 10)
+    iota> p
+    #<point 10 4>
+    iota> (point? p)
+    #t
+    iota> (point? 42)
+    #f
+    iota> (point-y 42)
+    expected a point, got: 42
+  #+end_example
+
+  Here =y= has no modifier, so it cannot be changed after the point is
+  made. A longer program is in [[file:examples.org::#records][examples/records.iota]].
+
+* Macros
+  :PROPERTIES:
+  :CUSTOM_ID: macros
+  :END:
+
+  Macros are written with =syntax-rules=: patterns on the left,
+  templates on the right.
+
+  #+begin_src scheme
+    (define-syntax swap!
+      (syntax-rules ()
+        ((_ a b) (let ((tmp a)) (set! a b) (set! b tmp)))))
+
+    (define tmp 1)
+    (define other 2)
+    (swap! tmp other)
+    (list tmp other)                       ; => (2 1)
+  #+end_src
+
+  This works although the variable being swapped is itself called
+  =tmp=. Expansion is hygienic: a name that a template introduces is
+  never confused with a name at the place the macro is used. It holds
+  in the other direction too. Below, the caller's =t= is not the
+  template's =t=, and the template's =if= still means =if= where the
+  caller has given that name another meaning.
+
+  #+begin_src scheme
+    (define-syntax my-or
+      (syntax-rules ()
+        ((_) #f)
+        ((_ e) e)
+        ((_ e1 e2 ...) (let ((t e1)) (if t t (my-or e2 ...))))))
+
+    (my-or #f #f 3)                        ; => 3
+    (let ((t 5)) (my-or #f t))             ; => 5
+    (let ((if list)) (my-or #f 7))         ; => 7
+  #+end_src
+
+  An ellipsis after a pattern matches any number of forms, and a macro
+  may use itself. A use that fits none of the patterns is an error.
+
+  #+begin_example
+    iota> (define-syntax twice
+      ...   (syntax-rules ()
+      ...     ((_ e) (begin e e))))
+    iota> (twice (begin (display "ho") (newline)))
+    ho
+    ho
+    iota> (twice)
+    syntax error: no matching syntax rule for twice: (twice)
+  #+end_example
+
+  More in [[file:guide.org][Using iota]], and a longer program in [[file:examples.org::#macros][examples/macros.iota]].
+
+* Errors
+  :PROPERTIES:
+  :CUSTOM_ID: errors
+  :END:
+
+  =error= raises an error object made of a message and any number of
+  other values. =guard= catches what was raised and tries its clauses
+  in order, like =cond=.
+
+  #+begin_example
+    iota> (error "no such user:" 'alice)
+    no such user: alice
+    iota> (guard (e ((error-object? e)
+      ...            (list (error-object-message e)
+      ...                  (error-object-irritants e))))
+      ...   (error "no such user:" 'alice))
+    ("no such user:" (alice))
+  #+end_example
+
+  The errors iota itself reports are error objects too, so a program
+  can catch them the same way.
+
+  #+begin_example
+    iota> (vector-ref (vector 1 2 3) 5)
+    vector-ref: index out of range: 5
+    iota> (guard (e ((error-object? e) (error-object-message e)))
+      ...   (vector-ref (vector 1 2 3) 5))
+    "vector-ref: index out of range"
+  #+end_example
+
+  =raise= accepts any object. When no clause of a =guard= matches, the
+  object goes on to the next handler out, and with none left the repl
+  reports it.
+
+  #+begin_example
+    iota> (guard (e ((symbol? e) (list 'caught e)))
+      ...   (raise 'out-of-cheese))
+    (caught out-of-cheese)
+    iota> (guard (e ((string? e) e))
+      ...   (raise 42))
+    uncaught exception: 42
+  #+end_example
+
+  =with-exception-handler= installs a handler without leaving the
+  computation. With =raise-continuable= the value the handler returns
+  becomes the value of the =raise-continuable= call.
+
+  #+begin_example
+    iota> (with-exception-handler
+      ...   (lambda (e) 0)
+      ...   (lambda () (+ 1 (raise-continuable 'missing))))
+    1
+  #+end_example
+
+  More in the [[file:guide.org::#errors][errors]] section of the guide, and a longer program in
+  [[file:examples.org::#exceptions][examples/exceptions.iota]].
+
+* Parameters
+  :PROPERTIES:
+  :CUSTOM_ID: parameters
+  :END:
+
+  A parameter is a procedure that holds a value. =parameterize= gives
+  it another value while a body runs, for everything called from that
+  body, and puts the old value back afterwards.
+
+  #+begin_example
+    iota> (define verbose (make-parameter #f))
+    iota> (define (log-line msg)
+      ...   (when (verbose) (display msg) (newline)))
+    iota> (log-line "not shown")
+    iota> (parameterize ((verbose #t))
+      ...   (log-line "shown"))
+    shown
+    iota> (verbose)
+    #f
+  #+end_example
+
+  The current input, output and error ports are parameters. That is
+  how to send output somewhere else for a while.
+
+  #+begin_example
+    iota> (define port (open-output-string))
+    iota> (parameterize ((current-output-port port))
+      ...   (display "captured"))
+    iota> (get-output-string port)
+    "captured"
+  #+end_example
+
+  A longer program is in [[file:examples.org::#parameters][examples/parameters.iota]].
+
+* Continuations
+  :PROPERTIES:
+  :CUSTOM_ID: continuations
+  :END:
+
+  =call/cc= passes the rest of the computation to a procedure, as a
+  continuation. Calling the continuation is a way out of a loop.
+
+  #+begin_src scheme
+    (call/cc (lambda (k) (+ 1 (k 42))))    ; => 42
+
+    (define (find-first pred lst)
+      (call/cc
+        (lambda (return)
+          (for-each (lambda (x) (when (pred x) (return x))) lst)
+          #f)))
+
+    (find-first even? '(1 3 4 5 6))        ; => 4
+    (find-first even? '(1 3 5))            ; => #f
+  #+end_src
+
+  A continuation can also be called after the code that captured it
+  has returned, and more than once. This generator leaves the
+  =for-each= at each element and goes back into it on the next call.
+
+  #+begin_src scheme
+    (define (make-generator lst)
+      (define return #f)
+      (define resume #f)
+      (lambda ()
+        (call/cc
+          (lambda (r)
+            (set! return r)
+            (if resume
+                (resume 'go)
+                (begin
+                  (for-each
+                    (lambda (x)
+                      (call/cc (lambda (k) (set! resume k) (return x))))
+                    lst)
+                  (return 'done)))))))
+
+    (define next (make-generator '(a b c)))
+    (list (next) (next) (next) (next))     ; => (a b c done)
+  #+end_src
+
+  =dynamic-wind= takes three procedures. The first and the last run
+  whenever control enters or leaves the middle one, including when it
+  leaves through a continuation.
+
+  #+begin_example
+    iota> (dynamic-wind
+      ...   (lambda () (display "[in] "))
+      ...   (lambda () 'result)
+      ...   (lambda () (display "[out]") (newline)))
+    [in] [out]
+    result
+    iota> (call/cc
+      ...   (lambda (k)
+      ...     (dynamic-wind
+      ...       (lambda () (display "[in] "))
+      ...       (lambda () (k 'escaped))
+      ...       (lambda () (display "[out]") (newline)))))
+    [in] [out]
+    escaped
+  #+end_example
+
+  Longer programs are in [[file:examples.org::#generator][examples/generator.iota]] and
+  [[file:examples.org::#dynamic-wind][examples/dynamic-wind.iota]].
+
+* Ports
+  :PROPERTIES:
+  :CUSTOM_ID: ports
+  :END:
+
+  =write= prints a value so that =read= can read it back. =display=
+  prints it for a person, without quotes.
+
+  #+begin_example
+    iota> (begin (write "a b") (newline))
+    "a b"
+    iota> (begin (display "a b") (newline))
+    a b
+  #+end_example
+
+  Both take a port as an optional second argument. A string port is
+  the easiest one to try them on. An output string port collects what
+  is written to it, and an input string port is read like a file.
+
+  #+begin_example
+    iota> (define out (open-output-string))
+    iota> (write (list 1 "two" #\3) out)
+    iota> (display " and " out)
+    iota> (display "two" out)
+    iota> (get-output-string out)
+    "(1 \"two\" #\\3) and two"
+    iota> (define in (open-input-string "(1 2) foo \"bar\" 42"))
+    iota> (read in)
+    (1 2)
+    iota> (read in)
+    foo
+    iota> (read in)
+    "bar"
+    iota> (read in)
+    42
+    iota> (eof-object? (read in))
+    #t
+  #+end_example
+
+  Files work the same way. =call-with-output-file= and
+  =call-with-input-file= open a file, pass the port to a procedure and
+  close it afterwards.
+
+  # doctest: skip
+  #+begin_example
+    iota> (call-with-output-file "notes.txt"
+      ...   (lambda (port)
+      ...     (write '(1 2 3) port)
+      ...     (newline port)))
+    iota> (call-with-input-file "notes.txt" read)
+    (1 2 3)
+    iota> (file-exists? "notes.txt")
+    #t
+    iota> (delete-file "notes.txt")
+    iota> (file-exists? "notes.txt")
+    #f
+  #+end_example
+
+  A longer program is in [[file:examples.org::#string-ports][examples/string-ports.iota]].
+
+* Libraries
+  :PROPERTIES:
+  :CUSTOM_ID: libraries
+  :END:
+
+  A library is a =define-library= form that says what it imports and
+  what it exports. It goes in a file whose path spells its name, so
+  =(my shapes)= is the file =my/shapes.iota=:
+
+  #+begin_src scheme
+    (define-library (my shapes)
+      (import (scheme base))
+      (export circle-area square-area)
+      (begin
+        (define pi 355/113)
+        (define (circle-area r) (* pi r r))
+        (define (square-area s) (* s s))))
+  #+end_src
+
+  A program in the directory that holds =my= can import it. This one
+  is =areas.iota=:
+
+  #+begin_src scheme
+    (import (scheme base) (scheme write) (my shapes))
+
+    (display (square-area 3))
+    (newline)
+    (display (circle-area 2))
+    (newline)
+  #+end_src
+
+  #+begin_example
+    $ iota areas.iota
+    9
+    1420/113
+  #+end_example
+
+  Only the exported names are visible to the program. =pi= stays
+  inside the library. An import can also take part of a library or
+  change the names, with =only=, =except=, =prefix= and =rename=.
+
+  A library does not have to be in a file. One defined in the program
+  itself, or typed at the repl, is imported in the same way.
+
+  #+begin_src scheme
+    (define-library (my counter)
+      (import (scheme base))
+      (export next!)
+      (begin
+        (define n 0)
+        (define (next!) (set! n (+ n 1)) n)))
+
+    (import (prefix (my counter) counter:))
+
+    (counter:next!)                        ; => 1
+    (counter:next!)                        ; => 2
+  #+end_src
+
+  A script and the repl start with every standard library imported,
+  so the =import= line of a program is optional there. A library
+  starts with nothing and has to import everything it uses,
+  =(scheme base)= included.
+
+  Library files are looked for next to the file that imports them,
+  then in the directories named in the =IOTA_LIBRARY_PATH= environment
+  variable, then in a =lib= directory under the current directory. The
+  [[file:guide.org::#libraries][libraries]] section of the guide has the full rules.
+
+  Two longer programs are [[file:examples.org::#stack][examples/stack.iota]] and
+  [[file:examples.org::#queue][examples/queue.iota]].
+
+* Scripts
+  :PROPERTIES:
+  :CUSTOM_ID: scripts
+  :END:
+
+  Give =iota= a file name and it runs the file. The arguments after
+  the file name are passed to the program, and =(command-line)=
+  returns the file name followed by those arguments. This is
+  =greet.iota=:
+
+  #+begin_src scheme
+    (import (scheme base) (scheme write) (scheme process-context))
+
+    (define args (cdr (command-line)))
+
+    (when (null? args)
+      (display "usage: iota greet.iota NAME..." (current-error-port))
+      (newline (current-error-port))
+      (exit 2))
+
+    (for-each (lambda (name)
+                (display "hello, ")
+                (display name)
+                (newline))
+              args)
+  #+end_src
+
+  #+begin_example
+    $ iota greet.iota Ada Grace
+    hello, Ada
+    hello, Grace
+    $ echo $?
+    0
+    $ iota greet.iota
+    usage: iota greet.iota NAME...
+    $ echo $?
+    2
+  #+end_example
+
+  A script prints only what it displays. The value of a form at the
+  top of the file is not echoed as it is in the repl. The exit status
+  is 0 when the program reaches its end, and =(exit 2)= ends it with
+  status 2.
+
+  An error nobody catches stops the script with status 1. The message
+  starts with the file, line and column of the top-level form that was
+  running. This is =oops.iota=:
+
+  #+begin_src scheme
+    (import (scheme base) (scheme write))
+
+    (display "starting")
+    (newline)
+    (vector-ref (vector 1 2 3) 5)
+    (display "not reached")
+    (newline)
+  #+end_src
+
+  #+begin_example
+    $ iota oops.iota
+    starting
+    oops.iota:5:1: vector-ref: index out of range: 5
+    $ echo $?
+    1
+  #+end_example
+
+  For a single expression there is no need for a file:
+
+  #+begin_example
+    $ iota eval '(* 6 7)'
+    42
+  #+end_example
+
+  Every option and the exact rules, including how to pass a program
+  an argument that looks like one of iota's own options, are in
+  [[file:guide.org::#the-command-line][the command line]] section of the guide.
+
+* Where to go next
+  :PROPERTIES:
+  :CUSTOM_ID: where-to-go-next
+  :END:
+
+  - [[file:guide.org][Using iota]] is the user's guide: the command line, the repl, the
+    data types, errors and libraries in detail. Its [[file:guide.org::#limits][limits]] section says
+    what iota does not have.
+  - [[file:procedures.org][Libraries and procedures]] lists what every library exports,
+    =(iota extras)= included.
+  - [[file:r7rs-coverage.org][R7RS-small coverage]] compares iota with the report, feature by
+    feature, and lists where it deviates.
+  - [[file:examples.org][Examples]] has a short program for most of the areas above,
+    each with what it prints.

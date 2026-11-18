@@ -1,0 +1,23 @@
+1. normal return
+  enter a
+  leave a
+  result: done
+2. escape with call/cc
+  enter b
+  leave b
+  result: escaped
+3. escape with an error
+  enter c
+  leave c
+  result: (caught failed inside)
+4. re-entry
+  enter d
+  inside, pass 1
+  leave d
+  enter d
+  inside, pass 2
+  leave d
+  enter d
+  inside, pass 3
+  leave d
+done after 3 passes

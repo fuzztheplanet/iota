@@ -1,0 +1,10 @@
+indent is 0
+    indent is 4
+        indent is 8
+    indent is 4
+indent is 0
+255
+ff
+11111111
+unsupported radix (7)
+captured 29 characters

@@ -1,13 +1,14 @@
--- | syntax-rules. Match a pattern, fill in a template. Literals, the
+-- | @syntax-rules@. Match a pattern, fill in a template. Literals, the
 -- wildcard, dotted and vector patterns, nested ellipses, a custom
 -- ellipsis and the @(... ...)@ escape are all supported.
 --
 -- Hygiene is done by renaming. Every identifier in the template that is
--- not a pattern variable becomes a fresh alias pointing back at the
--- macro's environment. If the expansion binds that alias, say with a let
--- in the template, the binding is invisible to the caller's code. If it
--- does not, the alias resolves to whatever the name meant where the
--- macro was written. That takes care of capture in both directions.
+-- not a pattern variable becomes a fresh alias, a 'DAlias', pointing
+-- back at the macro's environment. If the expansion binds that alias,
+-- say with a let in the template, the binding is invisible to the
+-- caller's code. If it does not, the alias resolves to whatever the
+-- name meant where the macro was written. That takes care of capture in
+-- both directions.
 module Iota.SyntaxRules
   ( makeSyntaxRules
   , expandMacro

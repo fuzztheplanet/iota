@@ -1,0 +1,191 @@
+#+TITLE: Examples
+#+DESCRIPTION: The example programs that come with iota, each with what it prints: numbers, records, macros, exceptions, parameters, ports, dynamic-wind, continuations, streams and libraries.
+#+SETUPFILE: setup.org
+#+OPTIONS: num:nil
+
+The programs in the =examples= directory of the [[https://github.com/fuzztheplanet/iota/tree/main/examples][repository]], each
+followed by what it writes to standard output. Each one shows one
+thing. Run any of them with =iota examples/NAME.iota= from the top of
+the repository.
+
+Nothing on this page is a copy that could go out of date. The export
+reads the programs and the recorded outputs from their files, and the
+test suite runs every program and compares what it prints with that
+record. [[file:tutorial.org][A tour of iota]] goes through the same areas step by step.
+
+* numbers.iota
+  :PROPERTIES:
+  :CUSTOM_ID: numbers
+  :END:
+
+  The numeric tower: exact integers of any size, exact rationals, inexact reals and complex numbers.
+
+  #+INCLUDE: "../examples/numbers.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/numbers.golden" example
+
+* fib.iota
+  :PROPERTIES:
+  :CUSTOM_ID: fib
+  :END:
+
+  Exact bignums, a loop in constant space and the time library. The timings go to standard error, so they are not part of the output below.
+
+  #+INCLUDE: "../examples/fib.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/fib.golden" example
+
+* records.iota
+  :PROPERTIES:
+  :CUSTOM_ID: records
+  :END:
+
+  =define-record-type=: constructor, predicate, accessors and a modifier.
+
+  #+INCLUDE: "../examples/records.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/records.golden" example
+
+* macros.iota
+  :PROPERTIES:
+  :CUSTOM_ID: macros
+  :END:
+
+  =syntax-rules=: a new control form, a literal keyword, a recursive macro, and hygiene in both directions.
+
+  #+INCLUDE: "../examples/macros.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/macros.golden" example
+
+* exceptions.iota
+  :PROPERTIES:
+  :CUSTOM_ID: exceptions
+  :END:
+
+  Error objects, =guard=, =raise= with any object, re-raising, and =with-exception-handler= with =raise-continuable=.
+
+  #+INCLUDE: "../examples/exceptions.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/exceptions.golden" example
+
+* parameters.iota
+  :PROPERTIES:
+  :CUSTOM_ID: parameters
+  :END:
+
+  =make-parameter= and =parameterize=, a converter, and the current output port as a parameter.
+
+  #+INCLUDE: "../examples/parameters.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/parameters.golden" example
+
+* string-ports.iota
+  :PROPERTIES:
+  :CUSTOM_ID: string-ports
+  :END:
+
+  Writing into a string and reading back from one.
+
+  #+INCLUDE: "../examples/string-ports.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/string-ports.golden" example
+
+* dynamic-wind.iota
+  :PROPERTIES:
+  :CUSTOM_ID: dynamic-wind
+  :END:
+
+  Before and after thunks on a normal return, an escape, an error and a re-entry.
+
+  #+INCLUDE: "../examples/dynamic-wind.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/dynamic-wind.golden" example
+
+* generator.iota
+  :PROPERTIES:
+  :CUSTOM_ID: generator
+  :END:
+
+  A generator built from re-entrant continuations.
+
+  #+INCLUDE: "../examples/generator.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/generator.golden" example
+
+* streams.iota
+  :PROPERTIES:
+  :CUSTOM_ID: streams
+  :END:
+
+  Lazy streams with =delay=, =delay-force= and =force=.
+
+  #+INCLUDE: "../examples/streams.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/streams.golden" example
+
+* stack.iota
+  :PROPERTIES:
+  :CUSTOM_ID: stack
+  :END:
+
+  Importing a library from a file, with a prefix.
+
+  The library, =examples/my/stack.iota=:
+
+  #+INCLUDE: "../examples/my/stack.iota" src scheme
+
+  The program:
+
+  #+INCLUDE: "../examples/stack.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/stack.golden" example
+
+* queue.iota
+  :PROPERTIES:
+  :CUSTOM_ID: queue
+  :END:
+
+  More about libraries: renaming on export and on import, and names that stay private.
+
+  The library, =examples/my/queue.iota=:
+
+  #+INCLUDE: "../examples/my/queue.iota" src scheme
+
+  The program:
+
+  #+INCLUDE: "../examples/queue.iota" src scheme
+
+  It prints:
+
+  #+INCLUDE: "../test/golden/examples/queue.golden" example
+
+* From Haskell
+  :PROPERTIES:
+  :CUSTOM_ID: from-haskell
+  :END:
+
+  =examples/haskell/Embed.hs= is a Haskell program that runs Scheme
+  with iota as a library. It is shown, with what it prints, under
+  [[file:guide.org::#using-iota-from-haskell][Using iota from Haskell]] in the user's guide.

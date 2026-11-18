@@ -113,8 +113,8 @@ instance Show Symbol where
 -- exact integer is a rational with denominator 1. Having one exact
 -- constructor means the exactness rules are written once. A Complex
 -- always has real parts inside, never another Complex, and its
--- imaginary part is never an exact zero. Iota.Number keeps that true
--- through makeRectangular.
+-- imaginary part is never an exact zero. "Iota.Number" keeps that true
+-- through 'Iota.Number.makeRectangular'.
 data Number
   = Exact !Rational
   | Inexact !Double
@@ -474,7 +474,9 @@ data Runtime = Runtime
     rtStdin :: Value
   , rtStdout :: Value
   , rtStderr :: Value
-  , -- | Directories to search for library files.
+  , -- | Directories to search for library files, after the directory
+    -- of the importing file. The ones from @IOTA_LIBRARY_PATH@, then
+    -- @lib@.
     rtLibraryPath :: [FilePath]
   , -- | Where the top level form being run came from. For error messages.
     rtLoc :: !(IORef (Maybe SrcLoc))
@@ -518,6 +520,9 @@ showLoc loc = T.pack (locFile loc <> ":" <> show (locLine loc) <> ":" <> show (l
 -- $eval
 -- Eval is IO. The continuation passing happens in compiled code on top
 -- of it. docs\/architecture.org has the reasoning.
+
+-- | A plain synonym for 'IO'. A failing action throws a 'SchemeError'
+-- as an ordinary Haskell exception, with 'throwScheme'.
 type Eval = IO
 
 -- Errors
@@ -555,6 +560,10 @@ instance Exception SchemeError
 instance Show SchemeError where
   show = T.unpack . shallowShow
 
+-- | Throw a 'SchemeError' as a Haskell exception. This is how a
+-- 'Primitive' reports an error. 'Iota.Eval.applyK' catches it at the
+-- call and hands it to the Scheme handler. A 'PrimitiveK' must not let
+-- one escape for a Scheme-level error. See there.
 throwScheme :: SchemeError -> Eval a
 throwScheme = throwIO
 

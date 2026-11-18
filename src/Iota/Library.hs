@@ -47,14 +47,21 @@ libNameFromDatum = \case
       | DNumber (Exact r) <- d, denominator r == 1, numerator r >= 0 = Right (T.pack (show (numerator r)))
       | otherwise = Left ("malformed library name part: " <> T.pack (show d))
 
+-- | The name the way it is written in source, @(scheme base)@. For
+-- messages.
 libNameText :: LibName -> Text
 libNameText (LibName parts) = "(" <> T.unwords parts <> ")"
 
 -- Registry
 
+-- | Add a library to the registry of this runtime. A library already
+-- registered under the same name is replaced, and code that imported
+-- the old one keeps the bindings it got.
 registerLibrary :: Runtime -> Library -> IO ()
 registerLibrary rt lib = modifyIORef' (rtLibraries rt) (Map.insert (libName lib) lib)
 
+-- | A library that is already registered. This does not look on
+-- disk. 'Iota.Expand.Library.loadLibrary' does.
 lookupLibrary :: Runtime -> LibName -> IO (Maybe Library)
 lookupLibrary rt name = Map.lookup name <$> readIORef (rtLibraries rt)
 
@@ -166,7 +173,8 @@ schemeBase =
     , "member memq memv min modulo negative? newline not null? number->string"
     , "number? numerator odd? open-input-bytevector open-input-string"
     , "open-output-bytevector open-output-string or output-port-open? output-port?"
-    , "pair? parameterize peek-char peek-u8 positive? procedure? quasiquote quote"
+    , "pair? parameterize peek-char peek-u8 port? positive? procedure? quasiquote"
+    , "quote"
     , "quotient raise raise-continuable rational? rationalize read-bytevector"
     , "read-bytevector! read-char read-error? read-line read-string read-u8 real?"
     , "remainder reverse round set! set-car! set-cdr! square string string->list"
@@ -238,11 +246,12 @@ schemeR5rs =
     , "string>? string? substring symbol->string symbol? tan truncate values"
     , "vector vector->list vector-fill! vector-length vector-ref vector-set!"
     , "vector? with-input-from-file with-output-to-file write write-char zero?"
-    , "=> ... _ unquote unquote-splicing"
+    , "=> ... _ syntax-rules unquote unquote-splicing"
     ]
 
--- | The non-standard extras, exported as @(iota extras)@. The REPL
--- imports them. Portable programs should not.
+-- | The non-standard extras, exported as @(iota extras)@. The repl and
+-- scripts start with them imported. Portable programs should not use
+-- them.
 iotaExtrasExports :: [Text]
 iotaExtrasExports =
   T.words

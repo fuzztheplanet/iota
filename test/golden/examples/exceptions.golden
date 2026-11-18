@@ -1,0 +1,9 @@
+1/4
+caught: cannot take the reciprocal of (0)
+caught: vector-ref: index out of range (10)
+(symbol out-of-cheese)
+(string a string)
+(outer-caught 42)
+404
+11
+caught: exception handler returned from non-continuable raise

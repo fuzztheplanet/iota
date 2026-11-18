@@ -6,6 +6,10 @@ module Iota.Primitives.Predicates
 import Iota.Types
 import Iota.Value
 
+-- | The type predicates that are not about numbers or pairs, then
+-- @not@, @boolean=?@, @symbol=?@ and the two conversions between
+-- symbols and strings. The string that @symbol->string@ returns is a
+-- constant, as the report requires.
 predicatePrimitives :: [(Symbol, Value)]
 predicatePrimitives =
   [ typePred "boolean?" $ \case Boolean _ -> True; _ -> False

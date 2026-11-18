@@ -3,12 +3,18 @@ name:               iota
 version:            0.1
 synopsis:           A small R7RS Scheme interpreter in Haskell
 description:
-  iota is an R7RS-small Scheme interpreter. It is built as a library (the
-  Iota.* modules) with a small command line driver on top, so the reader,
-  the printer, the expander and the evaluator can each be tested on their
-  own.
-  .
-  Architecture notes and the R7RS coverage table are under docs/.
+  iota is an R7RS-small Scheme interpreter. Linux only. It is built as a
+  library (the Iota.* modules) with a small command line driver on top, so
+  the reader, the printer, the expander and the evaluator can each be
+  tested on their own.
+
+  A Haskell program that runs Scheme with iota needs the module "Iota" and
+  no other. Its header has a complete example. The other modules are the
+  parts of the interpreter.
+
+  The documentation is at <https://fuzztheplanet.github.io/iota/>: the
+  user's guide, the libraries and procedures, the R7RS coverage table and
+  notes on how the interpreter is put together.
 
 homepage:           https://github.com/fuzztheplanet/iota
 bug-reports:        https://github.com/fuzztheplanet/iota/issues
@@ -20,27 +26,37 @@ copyright:          (c) 2026 Skywhi
 category:           Language
 build-type:         Simple
 extra-doc-files:    README.org
+                    CHANGELOG.org
                     examples/README.org
                     docs/index.org
                     docs/setup.org
-                    docs/architecture.org
-                    docs/iota.org
+                    docs/install.org
+                    docs/tutorial.org
+                    docs/examples.org
+                    docs/guide.org
+                    docs/procedures.org
                     docs/r7rs-coverage.org
+                    docs/architecture.org
                     docs/hacking.org
-tested-with:        GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.2
+tested-with:        GHC == 9.4.8, GHC == 9.6.7, GHC == 9.8.2
 
+-- The test suite reads the pages above and the example programs, so they
+-- all have to be in the source distribution.
 extra-source-files: lib/iota/stdlib.iota
                     Makefile
                     docs/Makefile
                     docs/export.el
                     examples/*.iota
                     examples/my/*.iota
+                    examples/haskell/Embed.expected
                     test/scheme/*.iota
                     test/scheme/lib/*.iota
                     test/golden/*.golden
-                    test/scheme/*.iota
-                    test/scheme/lib/*.iota
-                    test/golden/*.golden
+                    test/golden/examples/*.golden
+                    test/conformance/README.org
+                    test/conformance/run.sh
+                    test/conformance/expected-failures.txt
+                    test/conformance/chibi/*.iota
 
 source-repository head
   type:     git
@@ -118,14 +134,18 @@ executable iota
   main-is:          Main.hs
   build-depends:    base
                   , iota
-  ghc-options:      -threaded -rtsopts "-with-rtsopts=-A64m -K256m"
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-K256m
 
 test-suite iota-test
   import:           warnings, language
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          Main.hs
-  other-modules:    Test.Eval
+  other-modules:    Test.CLI
+                    Test.Coverage
+                    Test.Docs
+                    Test.Eval
+                    Test.Examples
                     Test.Golden
                     Test.Macro
                     Test.Number
@@ -138,8 +158,10 @@ test-suite iota-test
   build-depends:    base
                   , iota
                   , bytestring
+                  , containers
                   , directory
                   , filepath
+                  , optparse-applicative
                   , QuickCheck           >= 2.14   && < 2.16
                   , tasty                >= 1.4    && < 1.6
                   , tasty-golden         >= 2.3    && < 2.4
@@ -147,3 +169,19 @@ test-suite iota-test
                   , tasty-quickcheck     >= 0.10   && < 0.12
                   , text
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+
+-- The program in examples/haskell, built and run so that the example of
+-- using iota from Haskell keeps compiling and keeps printing what the
+-- documentation says. It takes none of the shared settings above: it is
+-- plain Haskell 2010, built the way a program outside this package is.
+test-suite iota-embed-example
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   test/embed, examples/haskell
+  main-is:          Main.hs
+  other-modules:    Embed
+  build-depends:    base
+                  , iota
+                  , directory
+                  , text

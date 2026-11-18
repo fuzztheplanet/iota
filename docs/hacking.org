@@ -1,45 +1,52 @@
 #+TITLE: Hacking on iota
+#+DESCRIPTION: How to build, test and change iota: the toolchain, where each kind of change goes, the Makefile, the test suite, the documentation build, continuous integration and the release checklist.
 #+SETUPFILE: setup.org
-
-[[file:index.org][↑ Back to the index]]
 
 * Toolchain
   :PROPERTIES:
   :CUSTOM_ID: toolchain
   :END:
 
-  Any GHC from 9.4 onwards. On Arch:
+  GHC, cabal and make. [[file:install.org][Installing iota]] says how to get them, including
+  the cabal settings that Arch's packages need. iota is developed with
+  GHC 9.6.7 and cabal-install 3.10. The versions it is meant to build
+  with are the ones listed under tested-with in iota.cabal. Day to day
+  only 9.6.7 is built. The others are built and tested by the
+  continuous integration workflow, see [[#continuous-integration][Continuous integration]], and
+  nothing outside that list is checked at all. The lower bound on base
+  would admit GHC 9.2, and the upper bounds on the packages that ship
+  with GHC, such as containers and time, decide how new a compiler can
+  be.
 
-  #+begin_src sh
-    sudo pacman -S ghc cabal-install
-  #+end_src
+  Everything is built through the Makefile at the top of the
+  repository. It runs cabal for the Haskell side and docs/Makefile for
+  the documentation:
 
-  Or with ghcup, which is ghcup-hs-bin on the AUR:
+  | Target             | What it does                                                    |
+  |--------------------+-----------------------------------------------------------------|
+  | make build         | cabal build: the library and the executable                     |
+  | make test          | build, then cabal test: both test suites                        |
+  | make install       | cabal install: the iota executable                              |
+  | make docs          | build the documentation site, see [[#documentation][Documentation]]                 |
+  | make api           | build only the Haddock pages, into docs/api/                    |
+  | make conformance   | run the external R7RS suite, see [[#the-external-suite][The external suite]]            |
+  | make check         | everything that has to hold, see [[#checking-a-build-by-hand][Checking a build by hand]]      |
+  | make dist          | the source distribution builds and passes its tests on its own  |
+  | make clean         | remove dist-newstyle/ and the documentation site                |
 
-  #+begin_src sh
-    ghcup install ghc recommended
-    ghcup install cabal latest
-  #+end_src
+  make on its own does build, test and docs. make help lists the
+  targets and the variables. CABALFLAGS is passed on to the cabal
+  commands that build or test, as in ~make build CABALFLAGS=-j4~. make
+  runs one target after the other even under -j, because two cabals
+  must not work on dist-newstyle at the same time.
 
-  Then:
-
-  #+begin_src sh
-    cabal build
-    cabal test
-    cabal repl
-  #+end_src
-
-  The Makefile at the top wraps the same commands: make build, make
-  test, make docs for the HTML documentation and make clean. make on its
-  own does the first three. CABALFLAGS is passed on to cabal, as in
-  make build CABALFLAGS=--ghc-options=-Werror. make clean leaves the
-  checked-in HTML alone.
+  The one cabal command worth knowing next to these is cabal repl,
+  which gives ghci with the library loaded.
 
   hie.yaml is checked in, so haskell-language-server finds the project
   on its own.
 
-  Building the HTML documentation also needs Emacs. See
-  [[#documentation][Documentation]].
+  Building the documentation also needs Emacs. See [[#documentation][Documentation]].
 
 * Where things go
   :PROPERTIES:
@@ -50,16 +57,18 @@
   |-----------------------------------------+-----------------------------------------------------------------------|
   | lexical syntax                          | src/Iota/Reader.hs and Test.Reader                                    |
   | a new core form                         | special in src/Iota/Expand.hs and specialForms in Expand/Common.hs    |
-  | a new derived form                      | rewrite in src/Iota/Expand/Derived.hs, in the style of chapter 7.3    |
+  | a new derived form                      | rewrite in src/Iota/Expand/Derived.hs, in the style of chapter 7.3, and its name in the derived list of special in Expand.hs and in specialForms |
   | libraries, import, cond-expand          | src/Iota/Expand/Library.hs                                            |
   | a procedure that needs Haskell          | the matching module under src/Iota/Primitives/                        |
   | a procedure that calls back into Scheme | a PrimitiveK in Iota.Primitives.Control, or write it in Scheme        |
   | a procedure expressible in Scheme       | lib/iota/stdlib.iota, which is embedded at compile time, so rebuild    |
-  | exporting it from a standard library    | the Appendix A lists in src/Iota/Library.hs                           |
+  | exporting it from a standard library    | the Appendix A lists in src/Iota/Library.hs, and docs/procedures.org  |
+  | an example program                      | examples/NAME.iota, its golden file, a section of docs/examples.org   |
   | printing                                | src/Iota/Printer.hs and Test.Printer                                  |
   | numerics, complex numbers               | src/Iota/Number.hs and Test.Number                                    |
   | syntax-rules                            | src/Iota/SyntaxRules.hs and Test.Macro                                |
   | evaluation and continuations            | src/Iota/Eval.hs                                                      |
+  | the command line                        | src/Iota/CLI.hs and Test.CLI, and the guide's command line section    |
 
   When in doubt, write it in Scheme. A primitive that calls a Scheme
   procedure has to be a PrimitiveK and must not throw for Scheme level
@@ -69,14 +78,25 @@
 
   A name only becomes visible to programs once it appears in an export
   list in Iota.Library. If a listed name is not defined, startup fails
-  immediately rather than at first use.
+  immediately rather than at first use. The same lists are printed in
+  docs/procedures.org, and a test fails when the two disagree, so a new
+  export goes in both places. On that page it goes in two places: the
+  list of its library, and a row of the index of names at the end,
+  with its kind, its libraries and where it is described. The test
+  checks the row against the interpreter too.
 
 * Tests
   :PROPERTIES:
   :CUSTOM_ID: tests
   :END:
 
-  cabal test runs one tasty tree:
+  make test runs cabal test, which runs two suites. iota-test is one
+  tasty tree with everything in the list below. iota-embed-example is
+  the example of
+  using iota from Haskell, see [[#the-haskell-example][The Haskell example]]. iota-test
+  needs a UTF-8 locale, because some test names have characters
+  outside ASCII: under LC_ALL=C the run aborts when the first of them
+  is printed.
 
   1. Unit tests for the pure parts, meaning the reader, the printer and
      the numbers. Unit tests for syntax-rules in Test.Macro, driven with
@@ -84,26 +104,184 @@
      Test.Property for read and write round trips and number formatting.
   2. Evaluator cases in test/Test/Eval.hs and Scheme.hs. Each is an
      expression and its expected write output, run in a fresh
-     interpreter.
+     interpreter. Test.Coverage has more of the same, plus a few file
+     tests, for the rows of [[file:r7rs-coverage.org][R7RS-small coverage]] that nothing else
+     exercised. That page names the tests behind each row by module and
+     group, so renaming a group means updating the page.
   3. File and process tests in Test.Ports. File ports, libraries loaded
-     from disk, include, error locations, exit.
-  4. Golden tests. Every test/scheme/NAME.iota is run and its output,
+     from disk, include, error locations, exit, and how a script with a
+     read error or an expansion error is processed.
+  4. Command line tests in Test.CLI. They run the same option parser as
+     the executable on argument lists, without starting a process.
+  5. Golden tests. Every test/scheme/NAME.iota is run and its output,
      meaning everything it displayed followed by the written value of
      its last form, is compared against test/golden/NAME.golden. This is
      the test and test/ans layout from adamwespiser/scheme. Output is
      captured by pushing a string port onto the current-output-port
      parameter, see Iota.Interpreter.captureOutput.
+  6. The example programs. Every examples/NAME.iota is run the same way
+     and its standard output is compared against
+     test/golden/examples/NAME.golden, so an example cannot stop
+     working unnoticed. An example therefore has to print the same
+     thing on every run. Anything that varies, such as a timing, goes
+     to the error port, which the test discards. An example must not
+     read standard input. docs/examples.org shows every example with
+     its output, and a test fails when a program, a golden file or a
+     library under examples/ is missing from that page.
+  7. Doc tests in Test.Docs. The examples on the documentation pages are
+     run and compared with the output the page shows. See
+     [[#doc-tests][Doc tests]].
 
   To add a golden test:
 
   #+begin_src sh
-    echo '(+ 1 2)' > test/scheme/my-case.iota
-    cabal run iota -- run test/scheme/my-case.iota   # check it by eye
-    cabal test --test-options='--accept'             # writes the .golden
+    echo '(display "three: ") (+ 1 2)' > test/scheme/my-case.iota
+    cabal run iota -- test/scheme/my-case.iota   # shows what it displays
+    make test                                    # writes my-case.golden
+    cat test/golden/my-case.golden               # three: 3
   #+end_src
 
-  The accept flag rewrites every golden file from the current output.
-  Read the diff before committing.
+  Running the file shows what it displays but not the value of its
+  last form, which the golden file also records, so read the golden
+  file once it exists. A golden file that is missing is created by the
+  first test run. make check runs the tests with --no-create, and
+  there a missing one is a failure instead.
+
+  To replace golden files that exist, pass the accept flag, as in
+  cabal test --test-options='--accept -p my-case'. Without the tasty
+  pattern it rewrites every golden file from the current output, the
+  ones for the examples included. Read the diff before committing.
+
+** Doc tests
+   :PROPERTIES:
+   :CUSTOM_ID: doc-tests
+   :END:
+
+   Test.Docs scans README.org, examples/README.org and every page under
+   docs/ except setup.org, and turns two kinds of block into tests.
+
+   A repl transcript is an example block in which some line starts with
+   the =iota>= prompt:
+
+   #+begin_example
+     iota> (define (twice x) (* 2 x))
+     iota> (twice 21)
+     42
+   #+end_example
+
+   Lines before the first prompt are ignored, so a transcript may start
+   with the shell command and the banner. An input is the text after
+   the prompt, plus any following lines that start with the
+   continuation prompt, which is two spaces, three dots and a space.
+   The lines up to the next prompt are the expected output. Each block
+   gets a fresh interpreter and its inputs run in order. The actual
+   output is whatever the input wrote to the current output port,
+   followed by the result as the repl prints it: nothing for an
+   unspecified value, one line per value for multiple values, and the
+   message for an uncaught error. Trailing spaces and blank lines at
+   either end are ignored in the comparison. Inputs that start with a
+   colon are repl commands and are skipped. Inside a doc test
+   =(command-line)= is =("iota")=, as in the repl.
+
+   The prompts and the rule for what is echoed are the ones Iota.Repl
+   exports, so a transcript cannot show what the repl would not. A
+   continuation line is only accepted while the input before it has
+   more opening than closing parentheses, and an input has to be
+   complete where the next prompt or the end of the block comes.
+
+   A Scheme source block is tested when it contains a =; =>= comment:
+
+   #+begin_src scheme
+     (define (twice x) (* 2 x))
+     (twice 21)                    ; => 42
+   #+end_src
+
+   Its top level forms run in order in one fresh interpreter. A form
+   whose text, up to the start of the next form, contains the marker
+   must produce a value that writes as the rest of that line. A form
+   without a marker only has to run without an error. What a form
+   displays is not checked.
+
+   A block that almost follows these rules fails instead of being left
+   untested: a prompt written as =iota>(= without the space, in upper
+   case or followed by a tab, and a result comment written as =;=>= or
+   =; ==>=. So does a block whose begin or end line is missing or
+   misspelled. Each test stops after a minute, so an example that loops
+   fails instead of hanging the run.
+
+   A block that cannot run inside the test suite, because it needs
+   files, a terminal, the command line or a clock, is excluded with a
+   comment line directly above it:
+
+   #+begin_example
+     # doctest: skip
+     ,#+begin_src scheme
+       (load "some-file.iota")     ; => whatever the file ends with
+     ,#+end_src
+   #+end_example
+
+   Shell sessions, that is sh blocks and example blocks without the
+   prompt, are not tested. Run them by hand before pasting the output.
+
+   The same module has more checks:
+
+   - Every link between the scanned files has to lead somewhere: the
+     file exists, and a link to a section finds that CUSTOM_ID.
+   - A file that a page pulls in with =#+INCLUDE:= has to exist. The
+     file name comes first on that line, in double quotes, and is
+     relative to the page.
+   - The pages listed under extra-doc-files in iota.cabal have to be
+     the pages on disk.
+   - docs/procedures.org is compared with the export lists in
+     Iota.Library: the block under each library heading has to hold
+     exactly the names the library exports, and every name of
+     (iota extras) needs an entry with its signature.
+   - The index of names on the same page has to have one row for each
+     exported name, in order, with an anchor that is the name. The
+     Kind column is compared with what the interpreter binds the name
+     to, the Libraries column with the export lists, and Described in
+     has to be section numbers of the report, or for an extra a link
+     to the part of the page that has its entry.
+   - docs/examples.org has to include every program and library under
+     examples/ and every golden file under test/golden/examples/.
+   - The header of src/Iota.hs shows examples/haskell/Embed.hs and
+     what it prints. Both copies are compared with the files.
+
+** The Haskell example
+   :PROPERTIES:
+   :CUSTOM_ID: the-haskell-example
+   :END:
+
+   examples/haskell/Embed.hs is a program that uses iota as a library.
+   It is the example in the header of the Iota module and in the
+   user's guide, under [[file:guide.org::#using-iota-from-haskell][Using iota from Haskell]]. The test suite
+   iota-embed-example in iota.cabal builds it as plain Haskell 2010,
+   with none of the extensions the rest of the code is built with, and
+   test/embed/Main.hs runs it and compares what it prints with
+   examples/haskell/Embed.expected. It is a suite of its own because
+   the example writes to the real standard output, where the tasty
+   suite is writing too. When the example changes, change the copy in
+   src/Iota.hs with it and run make api and make docs.
+
+** The external suite
+   :PROPERTIES:
+   :CUSTOM_ID: the-external-suite
+   :END:
+
+   test/conformance/ runs the R7RS test suite of chibi-scheme against
+   iota. The suite is not part of this repository. run.sh downloads one
+   pinned revision of it on first use, checks its hash, runs it and
+   compares the totals and the failures with expected-failures.txt:
+
+   #+begin_src sh
+     make conformance
+   #+end_src
+
+   It succeeds when the number of tests and the failures are exactly
+   the expected ones, so a new failure, a failure that went away and a
+   test that was not run all show up. The results are
+   reported in [[file:r7rs-coverage.org::#conformance-suite][R7RS-small coverage]]. test/conformance/README.org has the
+   details, including how to move the pin.
 
 * Conventions
   :PROPERTIES:
@@ -111,11 +289,17 @@
   :END:
 
   - -Wall stays clean. Build with -Werror before sending a change.
-  - Language extensions go in the cabal file, not in pragmas.
+  - Language extensions the code uses throughout go in the cabal file.
+    A pragma is for an extension that one module needs, as in
+    Iota.Counter and Iota.Interpreter.
   - A helper lives in the module that owns the type, not where it was
     first needed.
   - Comments say why, not what. If the code needs a comment to say what
     it does, the code is the problem.
+  - Every exported function and type has a Haddock comment, and
+    cabal haddock reports full coverage. A comment says what a caller
+    cannot see from the name and the type: what is thrown, what is
+    mutated, which procedure of the report it implements.
   - The report wins. When in doubt, read the relevant section of R7RS
     and do what it says. A deliberate deviation goes on the list at the
     end of docs/r7rs-coverage.org, with the reason.
@@ -127,8 +311,9 @@
 
   Open a pull request against main. Keep it to one thing. A fix comes
   with a test that fails without it. If the change is user visible,
-  update docs/iota.org or docs/r7rs-coverage.org in the same change.
-  Nothing is merged with a failing test suite.
+  update docs/guide.org or docs/r7rs-coverage.org in the same change,
+  and add a line under Unreleased in CHANGELOG.org. Nothing is merged
+  with a failing test suite.
 
   Bug reports are best with the smallest program that shows the problem,
   the output you expected, and the output of iota --version.
@@ -149,22 +334,37 @@
   Then, from the top of the repository:
 
   #+begin_src sh
-    make docs            # export every page whose .org file changed
+    make docs            # export the pages that changed, and build the API pages
     make -C docs ids     # give new headings a CUSTOM_ID, see below
   #+end_src
 
-  and open docs/index.html in a browser. A change to setup.org or
-  export.el rebuilds every page. EMACS=/path/to/emacs picks another
-  Emacs than the one on the PATH.
+  and open docs/index.html in a browser. A change to setup.org,
+  export.el or iota.cabal rebuilds every page. EMACS=/path/to/emacs
+  picks another Emacs than the one on the PATH.
 
-  GitHub Pages serves docs/ as it is, so the HTML is checked in. Rebuild
-  it and commit it in the same change as the .org file it comes from.
-  The HTML in the repository was exported with Emacs 31.1 and the Org
-  9.8.7 that comes with it. Another Org version may write slightly
-  different HTML, and then every page shows up as changed.
+  Two pages take text from other files with =#+INCLUDE:= lines, so
+  that they cannot show a copy that has gone out of date.
+  examples.org includes the programs under examples/ and their golden
+  files, and guide.org includes examples/haskell/Embed.hs and what it
+  prints. docs/Makefile lists those files as prerequisites, so make
+  docs exports the page again when one of them changes. A page that
+  includes a new file needs the same line there.
+
+  The HTML is not checked in. .gitignore leaves out docs/*.html and
+  docs/api/, make clean removes them, and the continuous integration
+  workflow builds the site with make docs and publishes it on every
+  push to main, see [[#continuous-integration][Continuous integration]]. The pages are written
+  against Emacs 31.1 and the Org 9.8.7 that comes with it, which is
+  also what the workflow installs. Another Org version may export a
+  page slightly differently.
 
   docs/export.el is what the Makefile loads into Emacs. It makes the
-  export reproducible: an unchanged page gives an unchanged file.
+  export reproducible: an unchanged page gives an unchanged file. It
+  also writes the two parts every page shares. The navigation bar at
+  the top comes from the list iota-docs-pages in that file. The footer
+  shows the version from iota.cabal, which is why a version bump
+  changes every page, and links to the Org source of the page and to
+  the changelog.
 
   Every heading has a CUSTOM_ID property, which becomes its id in the
   HTML and the target of the ¶ link that shows when you hover over it.
@@ -173,32 +373,75 @@
   its text. Until then the export derives the same id on the fly, but
   it follows the heading text.
 
-  docs/setup.org holds what every page shares: the export options, the
-  stylesheet, and the Prism scripts that highlight source blocks in the
-  browser. Pages pull it in with =#+SETUPFILE: setup.org=. A new page
-  needs that line, a link back to index.org, an entry in the list in
-  index.org, and a line under extra-doc-files in iota.cabal.
+  docs/setup.org holds the rest of what every page shares: the export
+  options, the stylesheet with its light and dark colours, and the
+  Prism scripts that highlight source blocks in the browser. Pages pull
+  it in with =#+SETUPFILE: setup.org=.
 
-  The Prism files come from cdnjs with integrity hashes. A source block
-  in a new language needs its Prism component added to setup.org, and
-  bumping a version means new hashes:
+  A new page needs:
+
+  - a =#+TITLE:= line, a =#+DESCRIPTION:= line of one sentence, which
+    becomes the description search engines show, and the
+    =#+SETUPFILE: setup.org= line,
+  - an entry in iota-docs-pages in export.el, which puts it in the
+    navigation bar. A page that is missing from that list does not
+    export,
+  - an entry in the list in index.org and in the list in README.org,
+  - a line under extra-doc-files in iota.cabal. A test compares that
+    list with the pages on disk, so a page that would be missing from
+    the source distribution fails there.
+
+  The examples on the pages are run by the test suite. [[#doc-tests][Doc tests]] has
+  the rules a block has to follow.
+
+  The Prism files come from cdnjs with integrity hashes. There are two
+  themes, one for a light and one for a dark colour scheme. A source
+  block in a new language needs its Prism component added to setup.org,
+  and bumping a version means new hashes:
 
   #+begin_src sh
     curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A
   #+end_src
+
+** The API pages
+   :PROPERTIES:
+   :CUSTOM_ID: the-api-pages
+   :END:
+
+   docs/api/ holds the Haddock pages for the library. make docs
+   builds them after the other pages, and this builds only them:
+
+   #+begin_src sh
+     make api
+   #+end_src
+
+   They are not checked in either. The published ones are built by
+   the workflow, with the Haddock that comes with GHC 9.6.7.
+
+** The old guide address
+   :PROPERTIES:
+   :CUSTOM_ID: the-old-guide-address
+   :END:
+
+   The user's guide was docs/iota.org before it became docs/guide.org.
+   docs/iota.html is a page written by hand that forwards old links to
+   guide.html, keeping the section they pointed at. It is not exported
+   from anything, so it is the one HTML file in the repository:
+   .gitignore makes an exception for it and make clean leaves it alone.
 
 * Debugging
   :PROPERTIES:
   :CUSTOM_ID: debugging
   :END:
 
-  A few things that have saved me time:
+  A few things that help:
 
   - The repl's :ast command shows what the reader made of an expression.
     Handy when a macro seems to see the wrong shape.
   - cabal repl, then import Iota, then evalText "(+ 1 2)" gives you the
     interpreter from ghci. newInterpreter and runText do the same with a
-    persistent environment.
+    persistent environment. The header of the Iota module in the
+    [[file:api/index.html][API documentation]] has a longer example.
   - A test in Test.Eval is one line. Write the failing case there first
     and work backwards from it.
   - Test.Macro drives syntax-rules with a hand built environment, which
@@ -209,28 +452,67 @@
   :CUSTOM_ID: checking-a-build-by-hand
   :END:
 
-  Before a release, or after anything that touches the
-  build, run the same steps on the GHC versions listed under tested-with
-  in iota.cabal:
+  make check is everything that has to hold before a change goes in.
+  Continuous integration runs it on every push. To run it by hand,
+  before a release or after anything that touches the build, use each
+  GHC version listed under tested-with in iota.cabal:
 
   #+begin_src sh
-    cabal build all --enable-tests --ghc-options=-Werror
-    cabal test
-    cabal haddock lib:iota
-    for f in examples/*.iota; do cabal run -v0 iota -- "$f"; done
+    make check           # with GHC 9.6.7, the version iota is developed with
+    make check STRICT=   # with the other versions
+    make dist
   #+end_src
 
+  make check builds everything with warnings as errors, runs both
+  test suites, builds the Haddock pages and runs the external suite.
+  The tests cover the example programs and the pages, so there is no
+  separate step for them. They run with --no-create: a golden file
+  that is missing fails the run instead of being created, which
+  catches a golden file, an example or a test program that was left
+  out of the lists in iota.cabal. STRICT= leaves -Werror out. Warnings
+  are errors only on GHC 9.6.7, because a newer compiler has warnings
+  the code has not been cleaned up for.
+
+  make dist runs cabal check, unpacks the source distribution in a
+  temporary directory and builds and tests it there, on its own.
   ghcup makes switching GHC versions painless.
+
+* Continuous integration
+  :PROPERTIES:
+  :CUSTOM_ID: continuous-integration
+  :END:
+
+  .github/workflows/ci.yml runs on every push to main and on every pull
+  request, and can be started by hand from the Actions tab. Every step
+  that builds something is a make target, so what fails there can be
+  run again here with the same command. It has three jobs:
+
+  - build runs make check once for each GHC under tested-with, with
+    STRICT= on all but 9.6.7. On 9.6.7 it also runs make dist.
+  - site runs make docs, with Emacs 31.1 and GHC 9.6.7.
+  - deploy runs on main only, once the other two have passed. It
+    publishes what site built to GitHub Pages.
+
+  The site is not in the repository, so deploy is the only thing that
+  publishes it. For that the repository has to deploy Pages from
+  GitHub Actions. That is the Source setting under Settings, Pages.
+
+  When the list under tested-with changes, change the matrix in the
+  workflow with it.
 
 * Cutting a release
   :PROPERTIES:
   :CUSTOM_ID: cutting-a-release
   :END:
 
-  1. The checks above, on every GHC in tested-with.
-  2. cabal haddock, and read it once for anything that looks wrong.
-  3. cabal check and cabal sdist. The tarball has to build on its own.
-  4. Make sure docs/r7rs-coverage.org still matches what the code does,
-     and that make -C docs html still exports every page.
-  5. Bump the version in iota.cabal, following the PVP.
-  6. Tag it, vX.Y, and push the tag.
+  1. make check on every GHC in tested-with, with STRICT= on all but
+     9.6.7, and make dist. The workflow does both on every push.
+  2. make docs, and read the API pages once for anything that looks
+     wrong.
+  3. Make sure docs/r7rs-coverage.org still matches what the code does.
+  4. Bump the version in iota.cabal, following the PVP.
+  5. In CHANGELOG.org, turn Unreleased into a section for the new
+     version with the date, and start a new empty Unreleased.
+  6. Push to main. The workflow publishes the site. The footer of
+     every page shows the version, so every page changes.
+  7. Tag it, vX.Y, and push the tag.
