@@ -485,20 +485,30 @@
   .github/workflows/ci.yml runs on every push to main and on every pull
   request, and can be started by hand from the Actions tab. Every step
   that builds something is a make target, so what fails there can be
-  run again here with the same command. It has three jobs:
+  run again here with the same command. It has four jobs:
 
-  - build runs make check once for each GHC under tested-with, with
-    STRICT= on all but 9.6.7. On 9.6.7 it also runs make dist.
+  - build runs make check and then make dist with GHC 9.6.7, the
+    version iota is developed with.
+  - compat runs make check STRICT= once for each of the other GHCs
+    under tested-with.
   - site runs make docs, with Emacs 31.1 and GHC 9.6.7.
-  - deploy runs on main only, once the other two have passed. It
+  - deploy runs on main only, once build and site have passed. It
     publishes what site built to GitHub Pages.
+
+  deploy does not wait for compat. A failure there makes the run fail,
+  but it does not hold the site back: the pages describe what build
+  tested.
 
   The site is not in the repository, so deploy is the only thing that
   publishes it. For that the repository has to deploy Pages from
   GitHub Actions. That is the Source setting under Settings, Pages.
 
-  When the list under tested-with changes, change the matrix in the
-  workflow with it.
+  The GHC 9.4.8 job runs on the Ubuntu 24.04 image, not on the newest
+  one. GHC 9.4 is set up to link with the gold linker, which Ubuntu
+  26.04 no longer has, and every link there ends in =cannot find 'ld'=.
+
+  When the list under tested-with changes, change the matrix of compat
+  with it.
 
 * Cutting a release
   :PROPERTIES:

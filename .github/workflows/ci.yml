@@ -2,18 +2,21 @@
 # Every step that builds something is a make target, so the same checks can
 # be run by hand.  docs/hacking.org describes them.
 #
-#   build   make check on each GHC listed under tested-with in iota.cabal:
-#           build with the tests, run both test suites, build the Haddock
-#           pages and run the external R7RS suite.  cabal test includes the
-#           doc tests and the example programs, so a page or an example that
-#           has drifted from the interpreter fails here.  On the GHC the
-#           project is developed with, warnings are errors, and make dist
-#           checks that the source distribution builds and passes its tests
-#           on its own.
+#   build   make check with the GHC the project is developed with: build
+#           with the tests, warnings being errors, run both test suites,
+#           build the Haddock pages and run the external R7RS suite.  cabal
+#           test includes the doc tests and the example programs, so a page
+#           or an example that has drifted from the interpreter fails here.
+#           Then make dist: the source distribution has to build and pass
+#           its tests on its own.
+#   compat  make check with the other GHCs listed under tested-with in
+#           iota.cabal, without making warnings errors.
 #   site    make docs: export the documentation pages and build the API
 #           pages.
 #   deploy  on main, once build and site have passed, publish what site
-#           built to GitHub Pages.
+#           built to GitHub Pages.  It does not wait for compat: a compiler
+#           that stops working on the runners, or a warning in a newer
+#           one, shows up as a failed run but does not hold the site back.
 #
 # The site is not checked in, so this workflow is what publishes it.  For
 # that the repository has to deploy Pages from GitHub Actions: Settings,
@@ -41,19 +44,47 @@ env:
 
 jobs:
   build:
-    name: GHC ${{ matrix.ghc }}
+    # The GHC the project is developed with.  Keep it in step with site
+    # below, and with docs/hacking.org.
+    name: GHC 9.6.7
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.10'
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-ghc-9.6.7-${{ hashFiles('iota.cabal', 'cabal.project') }}
+          restore-keys: cabal-${{ runner.os }}-ghc-9.6.7-
+
+      - name: Build, tests, Haddock and the external R7RS suite
+        run: make check
+
+      - name: Source distribution
+        run: make dist
+
+  compat:
+    name: GHC ${{ matrix.ghc }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Keep in step with tested-with in iota.cabal.
-        ghc: ['9.4.8', '9.6.7', '9.8.2']
+        # With build above, these are the versions under tested-with in
+        # iota.cabal.  Keep them in step.
         include:
-          # The GHC the project is developed with.  Only there are warnings
-          # errors: a newer compiler may add warnings, and that should not
-          # fail a build.
-          - ghc: '9.6.7'
-            primary: true
+          # GHC 9.4 is set up to link with the gold linker, which Ubuntu
+          # 26.04 no longer has: every link ends in "cannot find 'ld'".
+          # The 24.04 image still has it.
+          - ghc: '9.4.8'
+            os: ubuntu-24.04
+          - ghc: '9.8.2'
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -66,17 +97,13 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ${{ steps.setup.outputs.cabal-store }}
-          key: cabal-${{ runner.os }}-ghc-${{ matrix.ghc }}-${{ hashFiles('iota.cabal', 'cabal.project') }}
-          restore-keys: cabal-${{ runner.os }}-ghc-${{ matrix.ghc }}-
+          key: cabal-${{ matrix.os }}-ghc-${{ matrix.ghc }}-${{ hashFiles('iota.cabal', 'cabal.project') }}
+          restore-keys: cabal-${{ matrix.os }}-ghc-${{ matrix.ghc }}-
 
+      # Warnings are not errors here: a compiler other than the one the code
+      # is written with has warnings of its own.
       - name: Build, tests, Haddock and the external R7RS suite
-        env:
-          STRICT: ${{ matrix.primary && '--ghc-options=-Werror' || '' }}
-        run: make check STRICT="$STRICT"
-
-      - name: Source distribution
-        if: matrix.primary
-        run: make dist
+        run: make check STRICT=
 
   site:
     name: Documentation site
